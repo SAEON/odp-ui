@@ -191,7 +191,7 @@
         (url_for('.edit', id=obj.id) if obj else url_for('.create'))
     %}
     {% set cancel_target = kwargs.get('cancel_target') or
-        (url_for('.view', id=obj.id) if obj else url_for('.index'))
+        (url_for('.detail', id=obj.id) if obj else url_for('.index'))
     %}
     <form action="{{ submit_target }}" method="post">
         {{ form.csrf_token }}
@@ -254,7 +254,7 @@
 
 {% macro obj_link(view, obj_id, display_text=None) %}
     {% if obj_id %}
-        {% set target = url_for(view ~ '.view', id=obj_id) %}
+        {% set target = url_for(view ~ '.detail', id=obj_id) %}
         <a href="{{ target }}" class="text-decoration-none">
             {{ display_text if display_text is not none else obj_id -}}
         </a>
