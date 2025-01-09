@@ -26,6 +26,18 @@ function _initMap(n, e, s, w) {
         imperial: false
     }).addTo(map);
 
+    const mapContainer = map.getContainer();
+    mapContainer.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            setFilter();
+            const form = mapContainer.closest('form');
+            if (form) {
+                form.submit();
+            }
+        }
+    });
+
     return map;
 }
 
