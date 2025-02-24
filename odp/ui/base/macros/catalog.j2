@@ -206,14 +206,9 @@
                             (No DOI)
                         {% endif %}
                     </span>
-                    <div>
-                        {% for sdg_tag in record.tags | selectattr('tag_id', '==', 'Record.SDG') | sort(attribute='data.keyword') %}
-                            <span>
-                                SDG {{ sdg_tag.data.keyword }}
-                                {%- if not loop.last %}, {% endif %}
-                            </span>
-                        {% endfor %}
-                    </div>
+                    <span>
+                        <input type="checkbox" name="check_item" value="{{ record.id }}">
+                    </span>
                 </div>
 {#                <div class="ms-2">#}
 {#                    {{ check_item(record.id) }}#}
@@ -238,8 +233,7 @@
 
 {% macro render_metadata(
     record,
-    current_user,
-    sdg_vocab
+    current_user
 ) %}
     {% set datacite_metadata = record | select_datacite_metadata %}  {# always present #}
     {% set iso19115_metadata = record | select_iso19115_metadata %}  {# might be null #}
@@ -313,22 +307,11 @@
 
             {% set props = props + ['Keywords'] %}
 
-            {% set sdg -%}
-                {% for sdg_tag in record.tags | selectattr('tag_id', '==', 'Record.SDG') | sort(attribute='data.keyword') %}
-                    {% set sdg_keyword = sdg_vocab[sdg_tag.data.keyword] %}
-                    {{ sdg_keyword.id | int }}: {{ sdg_keyword.title }}
-                    {%- if not loop.last %}<br/>{% endif %}
-                {% endfor %}
-            {%- endset %}
-            {% if sdg %}
-                {% set props = props + ['SDGs'] %}
-            {% endif %}
-
             {% set related_ids -%}
                 {% if datacite_metadata.relatedIdentifiers %}
                     <ul class="list-unstyled">
                         {% for related_id in datacite_metadata.relatedIdentifiers | selectattr('relationType', '!=', 'HasPart') | sort(attribute='relationType,relatedIdentifier') %}
-                            {% set relation_type = related_id.relationType | datacite_enum | lower %}
+                            {% set relation_type = related_id.relationType | uncamel | lower %}
                             <li>
                                 This digital object <b>{{ relation_type }}</b>
                                 {{ _render_related_identifier(related_id) }}
@@ -370,7 +353,7 @@
 
                 {% elif prop == 'Contributors' %}
                     {% for contributor in datacite_metadata.contributors %}
-                        <p>{{ contributor.contributorType | datacite_enum }}: {{ contributor.name }}<br/>
+                        <p>{{ contributor.contributorType | uncamel }}: {{ contributor.name }}<br/>
                             <small>{{ contributor.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
                         </p>
                     {% endfor %}
@@ -439,8 +422,6 @@
                 {% elif prop == 'Related resources' %}
                     {{ related_ids }}
 
-                {% elif prop == 'SDGs' %}
-                    {{ sdg }}
                 {% endif %}
             {% endcall %}
         </div>
