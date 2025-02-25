@@ -185,7 +185,11 @@ def subset_record_list():
     record_ids_query = f"record_id_or_doi_list={record_ids_query}"
     print(record_ids_query)
     # Pass the record IDs as query parameters
-    catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}')
+
+    #Add page and size on the query paramenters &page=1&size=50
+    page = request.args.getlist('page')
+    size = request.args.getlist('size')
+    catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
 
     print(catalog_record_list)
     return render_template(

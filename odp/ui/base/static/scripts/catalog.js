@@ -202,9 +202,10 @@ function buildRedirectUrl(selectedIds) {
     const currentUrl = new URL(window.location.href);
     // Replace the path with '/subset'
     const baseUrl = `${currentUrl.origin}/catalog/subset`
-
+    page = 1
+    size = 50
     const queryParams = selectedIds.map(id => `record_id_or_doi_list=${id}`).join('&');
-    return `${baseUrl}?${queryParams}`;
+    return `${baseUrl}?${queryParams}&page=${page}&size=${size}`;
 }
 
 function goToSelectedRecordList(event) {
