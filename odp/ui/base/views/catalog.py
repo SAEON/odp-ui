@@ -187,8 +187,9 @@ def subset_record_list():
     # Pass the record IDs as query parameters
 
     #Add page and size on the query paramenters &page=1&size=50
-    page = request.args.getlist('page')
-    size = request.args.getlist('size')
+    page = request.args.getlist('page')[0]
+
+    size = request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
 
     print(catalog_record_list)
