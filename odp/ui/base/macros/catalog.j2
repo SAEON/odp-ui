@@ -219,8 +219,12 @@
                             (No DOI)
                         {% endif %}
                     </span>
-                    <span>
+                    <span class="d-flex align-items-center">
+                    <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#record-subset-popup">
+                            <i class="fas fa-share-alt">~</i>
+                        </button>
                         <input type="checkbox" name="check_item" value="{{ record.id }}">
+
                     </span>
                 </div>
             </div>
