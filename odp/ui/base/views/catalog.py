@@ -142,7 +142,7 @@ def search():
         if not query[facet_field := CatalogSearchForm.facet_fieldname(facet_title)]:
             query.pop(facet_field)
 
-    return redirect(url_for('.index', **query))
+    return redirect(url_for( '.index', **query))
 
 
 @bp.route('/<path:id>')
@@ -173,3 +173,27 @@ def sitemap():
     response = make_response(sitemap_xml)
     response.headers['Content-Type'] = 'application/xml'
     return response
+
+
+@bp.route('/subset')
+@cli.view()
+def subset_record_list():
+    catalog_id = current_app.config['CATALOG_ID']
+    record_ids = request.args.getlist('record_id_or_doi_list')
+    record_ids_query = '&record_id_or_doi_list='.join(record_ids)
+    # Prepend the first parameter
+    record_ids_query = f"record_id_or_doi_list={record_ids_query}"
+    print(record_ids_query)
+    # Pass the record IDs as query parameters
+
+    #Add page and size on the query paramenters &page=1&size=50
+    page = request.args.getlist('page')[0]
+
+    size = request.args.getlist('size')[0]
+    catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
+
+    print(catalog_record_list)
+    return render_template(
+        'catalog_subset.html',
+        catalog_record_list=catalog_record_list,
+    )

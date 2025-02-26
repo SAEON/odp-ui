@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% from 'catalog.j2' import result_list, facet_panel, filter_panel, filtered_search_proxy %}
+{% from 'controls.j2' import pagination, check_all %}
+
+{% set pagination %}
+    <div class="my-4 mx-3">
+        {{ pagination(
+            catalog_record_list.page,
+            catalog_record_list.pages,
+            catalog_record_list.total,
+            items_singular='dataset',
+            items_plural='datasets',
+            text_color='light',
+            **dict(request.args)
+        ) }}
+    </div>
+{% endset %}
+
+
+{% block main %}
+    <main class="flex-grow-1 m-5">
+        <div class="container-xxl">
+            <div class="d-flex justify-content-center align-items-start">
+                <div class="flex-grow-evenly">
+
+                </div>
+
+                <div class="mx-5 w-50">
+                    <div class="mb-5">
+
+                    </div>
+                            {{ pagination }}
+{#                    <div class="d-flex justify-content-end p-3">#}
+{#
+{#                    </div>#}
+                    <div class="mb-5">
+                         {{ result_list(catalog_record_list['items']) }}
+                    </div>
+
+                        {{ pagination }}
+
+
+                </div>
+                <div class="flex-grow-evenly">
+
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        createFilterMap();
+        initCheckAll();
+        initFilteredSearchProxy('rank desc');
+    </script>
+{% endblock %}
