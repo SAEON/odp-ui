@@ -188,10 +188,23 @@
     </div>
 {% endmacro %}
 
+{% macro result_list(records) %}
 
-{% macro result_list(
-    records
-) %}
+<form id="recordForm">
+<div class="card mb-4">
+        <div class="card-header d-flex">
+            <div class="row">
+                <div class="col-auto">
+                                    
+                    <input type="checkbox" id="select_all" onclick="toggleSelectAll(this)"> Select All
+                </div>    
+                <div class="col-auto">
+                    <input type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)"> Unselect All
+                </div>
+            </div>
+         </div>
+        
+    </div>
     {% for record in records %}
         {% set metadata = record | select_datacite_metadata %}
         {% set abstract = metadata.descriptions | selectattr('descriptionType', '==', 'Abstract') | map(attribute='description') | first %}
@@ -206,14 +219,22 @@
                             (No DOI)
                         {% endif %}
                     </span>
+                    <span class="d-flex align-items-center">
+                    <button type="button" class="btn btn-link" data-bs-toggle="modal" data-bs-target="#record-subset-popup">
+            <span>
+
+                        <i class="bi bi-share">Share</i>
+
+            </span>
+</button>
+                        <input type="checkbox" name="check_item" value="{{ record.id }}">
+
+                    </span>
                 </div>
-{#                <div class="ms-2">#}
-{#                    {{ check_item(record.id) }}#}
-{#                </div>#}
             </div>
 
             <div class="card-body">
-                <h5 class="card-title ">
+                <h5 class="card-title">
                     <a href="{{ url_for('catalog.view', id=record.doi or record.id) }}"
                        class="text-decoration-none text-dark fw-bold">
                         {{ metadata.titles[0].title }}
@@ -225,6 +246,55 @@
             </div>
         </div>
     {% endfor %}
+
+
+
+ {% if 'subset' is not in request.url  %}
+
+<button type="button" class="btn btn-outline-info btn-action" data-bs-toggle="modal" data-bs-target="#record-subset-popup">
+        Select Records Subset
+    </button>
+
+     {% endif %}
+    <div class="modal fade" id="record-subset-popup" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Selected Records Subset</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-auto">
+                           
+                            <button onclick="goToSelectedRecordList(event)" class="btn btn-outline-info">Got to record subset</button>
+                            <button onclick="selectedRecordListLink(event)" class="btn btn-outline-info">Share record subset link</button>
+
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-auto">
+                            <p id='record-subsetilink'></p>
+                                    
+                        </div>
+                    </div>
+                    
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Close
+                    </button>
+                
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</form>
+
 {% endmacro %}
 
 

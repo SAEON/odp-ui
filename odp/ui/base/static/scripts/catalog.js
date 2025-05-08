@@ -191,3 +191,65 @@ function copyCitation() {
         flashTooltip('copy-citation-btn', 'Copied!');
     });
 }
+
+function getSelectedIds() {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function buildRedirectUrl(selectedIds) {
+//    const baseUrl = 'http://odp.localhost:2022/catalog/subset';
+    const currentUrl = new URL(window.location.href);
+    // Replace the path with '/subset'
+    const baseUrl = `${currentUrl.origin}/catalog/subset`
+    page = 1
+    size = 50
+    const queryParams = selectedIds.map(id => `record_id_or_doi_list=${id}`).join('&');
+    return `${baseUrl}?${queryParams}&page=${page}&size=${size}`;
+}
+
+function goToSelectedRecordList(event) {
+    event.preventDefault();
+    const selectedIds = getSelectedIds();
+    console.log("Selected IDs:", selectedIds);
+    const redirectUrl = buildRedirectUrl(selectedIds);
+    console.log("Redirect URL:", redirectUrl);
+    window.location.href = redirectUrl;
+}
+
+function selectedRecordListLink(event) {
+    event.preventDefault();
+    const selectedIds = getSelectedIds();
+    console.log("Selected IDs:", selectedIds);
+    const redirectUrl = buildRedirectUrl(selectedIds);
+    console.log("Redirect URL:", redirectUrl);
+    document.getElementById('record-subsetilink').innerText = redirectUrl;
+}
+
+
+
+  function toggleSelectAll(selectAllCheckbox) {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+}
+
+function toggleUnSelectAll() {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+
+//  function copyToClipboard() {
+//    const copyText = document.getElementById('record-subsetilink').innerText;
+//    const textarea = document.createElement('textarea');
+//    textarea.value = copyText;
+//    document.body.appendChild(textarea);
+//    textarea.select();
+//    document.execCommand('copy');
+//    document.body.removeChild(textarea);
+//    alert("Copied the text: " + copyText);
+//}
