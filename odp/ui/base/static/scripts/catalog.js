@@ -226,14 +226,31 @@ function selectedRecordListLink(event) {
     document.getElementById('record-subsetilink').innerText = redirectUrl;
 }
 
-
-
-  function toggleSelectAll(selectAllCheckbox) {
+function toggleSelectAll(selectAllCheckbox) {
     const checkboxes = document.querySelectorAll('input[name="check_item"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
 }
+
+function downloadAll(event, button) {
+    event.preventDefault();
+
+    let downloadUrls = JSON.parse(button.dataset.downloadUrls);
+
+    console.log("Download URLs:", downloadUrls);
+
+    // Example: trigger downloads
+    // downloadUrls.forEach(url => {
+    //     const a = document.createElement('a');
+    //     a.href = url;
+    //     a.download = '';  // browser will auto-handle filename
+    //     document.body.appendChild(a);
+    //     a.click();
+    //     document.body.removeChild(a);
+    // });
+}
+
 
 function toggleUnSelectAll() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]');

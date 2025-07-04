@@ -183,7 +183,6 @@ def subset_record_list():
     record_ids_query = '&record_id_or_doi_list='.join(record_ids)
     # Prepend the first parameter
     record_ids_query = f"record_id_or_doi_list={record_ids_query}"
-    print(record_ids_query)
     # Pass the record IDs as query parameters
 
     #Add page and size on the query paramenters &page=1&size=50
@@ -191,9 +190,11 @@ def subset_record_list():
 
     size = request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
-
-    print(catalog_record_list)
+    print("XXXXXXXXX",)
+    print(json.dumps(catalog_record_list))
+    print("sDS")
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
     )
+
