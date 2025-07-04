@@ -21,6 +21,7 @@
         <div class="container-xxl">
             <div class="d-flex justify-content-center align-items-start">
                 <div class="flex-grow-evenly">
+
                     {{ facet_panel(facet_fields, result.facets, **dict(request.args)) }}
                 </div>
                 <div class="mx-5 w-50">
@@ -32,6 +33,7 @@
 {#                        {{ check_all(right=true) }}#}
 {#                    </div>#}
                     <div class="mb-5">
+
                         {{ result_list(result['items']) }}
                     </div>
                     {% if result.total > 0 %}
