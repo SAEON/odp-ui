@@ -236,20 +236,26 @@ function toggleSelectAll(selectAllCheckbox) {
 function downloadAll(event, button) {
     event.preventDefault();
 
-    let downloadUrls = JSON.parse(button.dataset.downloadUrls);
+    let downloadUrls = JSON.parse(button.dataset.downloadUrls)
+        .filter(url => url.startsWith('https://repository.ocean.gov.za'));
 
-    console.log("Download URLs:", downloadUrls);
+    console.log("Filtered Download URLs:", downloadUrls);
 
-    // Example: trigger downloads
-    // downloadUrls.forEach(url => {
-    //     const a = document.createElement('a');
-    //     a.href = url;
-    //     a.download = '';  // browser will auto-handle filename
-    //     document.body.appendChild(a);
-    //     a.click();
-    //     document.body.removeChild(a);
-    // });
+    let delay = 500; // time between downloads in milliseconds
+
+    downloadUrls.forEach((url, index) => {
+        setTimeout(() => {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }, index * delay);
+    });
 }
+
+
 
 
 function toggleUnSelectAll() {
