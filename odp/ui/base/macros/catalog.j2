@@ -215,33 +215,42 @@
 
             <div class="card mb-4">
                 <div class="card-header">
-    <div class="row align-items-center w-100">
-        <!-- Left side: DOI -->
-        <div class="col-md-8">
-            {% if record.doi %}
-                <span>DOI: {{ record.doi }}</span>
-            {% else %}
-                <span>(No DOI)</span>
-            {% endif %}
-        </div>
+                    <div class="row align-items-center w-100">
+                        <!-- Left side: DOI -->
+                        <div class="col-md-8">
+                            {% if record.doi %}
+                                <span>DOI: {{ record.doi }}</span>
+                            {% else %}
+                                <span>(No DOI)</span>
+                            {% endif %}
+                        </div>
 
-        <!-- Right side: Checkbox + Share + Download -->
-        <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
-            <input type="checkbox" name="check_item" value="{{ record.id }}">
+                        <!-- Right side: Checkbox + Share + Download -->
+                        <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
+                            <input type="checkbox" name="check_item" value="{{ record.id }}">
 
-            <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#record-subset-popup">
-                <i class="bi bi-share"></i> Share
-            </button>
+                            <button type="button" class="btn btn-link p-0" data-bs-toggle="modal"
+                                    data-bs-target="#record-subset-popup">
+                                <i class="bi bi-share"></i> Share
+                            </button>
 
-            {% if immutable_resource and immutable_resource.resourceDownload and immutable_resource.resourceDownload.downloadURL %}
-                {% set download_url = immutable_resource.resourceDownload.downloadURL %}
-                <a href="{{ download_url }}/download" target="_blank" class="btn btn-sm btn-outline-primary">Download</a>
-            {% else %}
-                <span class="text-muted small">No Download</span>
-            {% endif %}
-        </div>
-    </div>
-</div>
+                            {% if immutable_resource
+                              and immutable_resource.resourceDownload
+                              and immutable_resource.resourceDownload.downloadURL
+                              and immutable_resource.resourceDownload.downloadURL.startswith('https://repository.ocean.gov.za') %}
+
+                                {% set download_url = immutable_resource.resourceDownload.downloadURL %}
+                                <a href="{{ download_url }}/download" target="_blank"
+                                   class="btn btn-sm btn-outline-primary">Download</a>
+
+                            {% else %}
+                                <span class="text-muted small">No Download</span>
+                            {% endif %}
+
+
+                        </div>
+                    </div>
+                </div>
 
 
                 <div class="card-body">
