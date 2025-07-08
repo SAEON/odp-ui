@@ -194,6 +194,25 @@ function copyCitation() {
 
 function getSelectedIds() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    console.log("CH",checkboxes)
+
+    // const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    const selectedRecords = [];
+
+    checkboxes.forEach(cb => {
+        // Find the closest parent div that contains the checkbox and the link
+        const container = cb.closest('.col-md-4');
+        if (container) {
+            const downloadLink = container.querySelector('a[href*="/download"]');
+            selectedRecords.push({
+                id: cb.value,
+                link: downloadLink ? downloadLink.href : null
+            });
+        }
+    });
+
+    console.log(selectedRecords)
+
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
@@ -211,7 +230,7 @@ function buildRedirectUrl(selectedIds) {
 function goToSelectedRecordList(event) {
     event.preventDefault();
     const selectedIds = getSelectedIds();
-    console.log("Selected IDs:", selectedIds);
+    console.log("--Selected IDs:", selectedIds);
     const redirectUrl = buildRedirectUrl(selectedIds);
     console.log("Redirect URL:", redirectUrl);
     window.location.href = redirectUrl;
@@ -220,7 +239,7 @@ function goToSelectedRecordList(event) {
 function selectedRecordListLink(event) {
     event.preventDefault();
     const selectedIds = getSelectedIds();
-    console.log("Selected IDs:", selectedIds);
+    console.log("Selected IDs:--", selectedIds);
     const redirectUrl = buildRedirectUrl(selectedIds);
     console.log("Redirect URL:", redirectUrl);
     document.getElementById('record-subsetilink').innerText = redirectUrl;
@@ -239,21 +258,30 @@ function downloadAll(event, button) {
     let downloadUrls = JSON.parse(button.dataset.downloadUrls)
         .filter(url => url.startsWith('https://repository.ocean.gov.za'));
 
-    console.log("Filtered Download URLs:", downloadUrls);
+    let zip = new JSZip();
+    let folder = zip.folder("downloads");
 
-    let delay = 500; // time between downloads in milliseconds
+    let fetchPromises = downloadUrls.map(url => {
+        return fetch(url)
+            .then(res => res.blob())
+            .then(blob => {
+                const fileName = url.split('/').pop();
+                folder.file(fileName, blob);
+            });
+    });
 
-    downloadUrls.forEach((url, index) => {
-        setTimeout(() => {
+    Promise.all(fetchPromises).then(() => {
+        zip.generateAsync({ type: "blob" }).then(content => {
             const a = document.createElement('a');
-            a.href = url;
-            a.download = '';
+            a.href = URL.createObjectURL(content);
+            a.download = "downloads.zip";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-        }, index * delay);
+        });
     });
 }
+
 
 
 
