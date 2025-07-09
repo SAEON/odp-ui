@@ -289,10 +289,17 @@
                         <div class="row">
                             <div class="col-auto">
 
-                                <button onclick="goToSelectedRecordList(event)" class="btn btn-outline-info">Got to
+                                <button onclick="goToSelectedRecordList(event)"
+                                        class="btn btn-outline-info"
+                                       >
+                                    Got to
                                     record subset
                                 </button>
-                                <button onclick="selectedRecordListLink(event)" class="btn btn-outline-info">Share
+                                <button onclick="selectedRecordListLink(event,this)"
+                                        class="btn btn-outline-info"
+                                         data-records='{{ records | tojson | safe }}'
+                                >
+                                Share
                                     record subset link
                                 </button>
 
@@ -303,9 +310,11 @@
                                         {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
                                     {% endif %}
                                 {% endfor %}
-                                <button onclick="downloadAll(event, this)"
+                                <button onclick="downloadSelectedRecords(event, this)"
                                         class="btn btn-outline-info"
-                                        data-download-urls='{{ download_urls | tojson | safe }}'>
+                                        data-download-urls='{{ download_urls | tojson | safe }}'
+                                        data-records='{{ records | tojson | safe }}'
+                                >
                                     Download All
                                 </button>
 
