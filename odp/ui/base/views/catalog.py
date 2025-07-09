@@ -3,12 +3,15 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for,Response
 
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
 from odp.ui.base import api, cli
 from odp.ui.base.forms import CatalogSearchForm
+
+import requests
+
 
 bp = Blueprint(
     'catalog', __name__,
@@ -198,3 +201,12 @@ def subset_record_list():
         catalog_record_list=catalog_record_list,
     )
 
+@bp.route('/proxy-download')
+def proxy_download():
+    url = request.args.get('url')
+    print(url)
+    r = requests.get(url)
+    return Response(r.content, headers={
+        'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
+        'Access-Control-Allow-Origin': '*'
+    })

@@ -283,12 +283,15 @@ async function downloadSelectedRecords(event, buttonEl) {
 
         if (downloadURL) {
             try {
-                const response = await fetch(downloadURL);
+                // Use backend proxy to avoid CORS issues
+                console.log("THIS IS THE URL PASSED !!!!!!",downloadURL)
+                const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
+                const response = await fetch(proxyUrl);
                 const blob = await response.blob();
                 const extension = blob.type.split('/')[1] || 'bin';
                 folder.file(`${fileName}.${extension}`, blob);
             } catch (err) {
-                console.error("Error downloading:", downloadURL, err);
+                console.error("Error downloading via proxy:", downloadURL, err);
             }
         }
     }
@@ -301,90 +304,6 @@ async function downloadSelectedRecords(event, buttonEl) {
         a.click();
     });
 }
-
-
-// <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-
-// async function downloadAll(event, buttonEl) {
-//     event.preventDefault();
-//
-//     const records = JSON.parse(buttonEl.getAttribute('data-records'));
-//     const zip = new JSZip();
-//     const selectedIds = getSelectedIds();
-//     console.log("Selected Records",selectedIds)
-//     console.log("Selected Records",records)
-
-    // for (const record of records) {
-    //     const metadataRecord = record.metadata_records[0]; // Assuming 1 per record
-    //     const metadata = metadataRecord.metadata;
-    //     const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
-    //     const folder = zip.folder(title);
-    //
-    //     // Add metadata text
-    //     const metadataText = JSON.stringify(metadata, null, 2);
-    //     folder.file('metadata.txt', metadataText);
-    //
-    //     // Download file
-    //     const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL;
-    //     const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
-    //
-    //     if (downloadURL) {
-    //         try {
-    //             const fileResponse = await fetch(downloadURL);
-    //             const blob = await fileResponse.blob();
-    //             folder.file(fileName + '.' + blob.type.split('/')[1], blob);
-    //         } catch (error) {
-    //             console.error("Failed to fetch file:", downloadURL, error);
-    //         }
-    //     }
-    // }
-    // console.log("Here")
-    // //Generate zip and download
-    // zip.generateAsync({ type: "blob" }).then(content => {
-    //     const link = document.createElement('a');
-    //     link.href = URL.createObjectURL(content);
-    //     link.download = "records.zip";
-    //     link.click();
-    // });
-// }
-
-//
-// function downloadAll(event, buttonEl) {
-//     event.preventDefault();
-//
-//     const recordsData = JSON.parse(buttonEl.getAttribute('data-records'));
-//     console.log("Records passed to button:", recordsData);
-//
-//     let downloadUrls = JSON.parse(buttonEl.dataset.downloadUrls)
-//         .filter(url => url.startsWith('https://repository.ocean.gov.za'));
-//     console.log("Download Urls:", downloadUrls)
-//
-//     // let zip = new JSZip();
-//     // let folder = zip.folder("downloads");
-//     //
-//     // let fetchPromises = downloadUrls.map(url => {
-//     //     return fetch(url)
-//     //         .then(res => res.blob())
-//     //         .then(blob => {
-//     //             const fileName = url.split('/').pop();
-//     //             folder.file(fileName, blob);
-//     //         });
-//     // });
-//     //
-//     // Promise.all(fetchPromises).then(() => {
-//     //     zip.generateAsync({ type: "blob" }).then(content => {
-//     //         const a = document.createElement('a');
-//     //         a.href = URL.createObjectURL(content);
-//     //         a.download = "downloads.zip";
-//     //         document.body.appendChild(a);
-//     //         a.click();
-//     //         document.body.removeChild(a);
-//     //     });
-//     // });
-// }
-
-
-
 
 
 function toggleUnSelectAll() {
