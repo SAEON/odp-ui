@@ -231,7 +231,8 @@
 
                             <button type="button" class="btn btn-link p-0" data-bs-toggle="modal"
                                     data-bs-target="#record-subset-popup">
-                                <i class="bi bi-share"></i> Share
+                                <i class="bi bi-share"></i>  <img src="{{ url_for('static', filename='images/share-icon.png') }}" height="15px"></a>
+
                             </button>
 
                             {% if immutable_resource
@@ -241,7 +242,8 @@
 
                                 {% set download_url = immutable_resource.resourceDownload.downloadURL %}
                                 <a href="{{ download_url }}/download" target="_blank"
-                                   class="btn btn-sm btn-outline-primary">Download</a>
+                                   class="">
+                                     <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px"></a>
 
                             {% else %}
                                 <span class="text-muted small">No Download</span>
@@ -315,7 +317,9 @@
                                         data-download-urls='{{ download_urls | tojson | safe }}'
                                         data-records='{{ records | tojson | safe }}'
                                 >
-                                    Download All
+                                     <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px">
+                                    Download Selected Records
+
                                 </button>
 
                             </div>
