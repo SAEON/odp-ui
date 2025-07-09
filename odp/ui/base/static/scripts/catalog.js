@@ -194,8 +194,6 @@ function copyCitation() {
 
 function getSelectedIds() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
-    console.log("CH",checkboxes)
-
     // const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
     const selectedRecords = [];
 
@@ -227,19 +225,21 @@ function buildRedirectUrl(selectedIds) {
     return `${baseUrl}?${queryParams}&page=${page}&size=${size}`;
 }
 
-function goToSelectedRecordList(event) {
+function goToSelectedRecordList(event,records) {
     event.preventDefault();
-    const selectedIds = getSelectedIds();
-    console.log("--Selected IDs:", selectedIds);
+    const selectedIds = getSelectedIds(records);
+    // console.log("--Selected IDs:", selectedIds,records);
     const redirectUrl = buildRedirectUrl(selectedIds);
-    console.log("Redirect URL:", redirectUrl);
+    // console.log("Redirect URL:", redirectUrl);
     window.location.href = redirectUrl;
 }
 
-function selectedRecordListLink(event) {
+function selectedRecordListLink(event,buttonEl) {
     event.preventDefault();
+
     const selectedIds = getSelectedIds();
-    console.log("Selected IDs:--", selectedIds);
+    console.log("Selected  list IDs :--", selectedIds,'------------',);
+
     const redirectUrl = buildRedirectUrl(selectedIds);
     console.log("Redirect URL:", redirectUrl);
     document.getElementById('record-subsetilink').innerText = redirectUrl;
@@ -252,35 +252,136 @@ function toggleSelectAll(selectAllCheckbox) {
     });
 }
 
-function downloadAll(event, button) {
+
+async function downloadSelectedRecords(event, buttonEl) {
     event.preventDefault();
 
-    let downloadUrls = JSON.parse(button.dataset.downloadUrls)
-        .filter(url => url.startsWith('https://repository.ocean.gov.za'));
+    const records = JSON.parse(buttonEl.getAttribute('data-records'));
+    const selectedIds = getSelectedIds();
+    console.log("Selected IDs:", selectedIds);
 
-    let zip = new JSZip();
-    let folder = zip.folder("downloads");
+    // Filter records based on selectedIds
+    const selectedRecords = records.filter(record => selectedIds.includes(record.id));
+    console.log("Selected Records:", selectedRecords);
 
-    let fetchPromises = downloadUrls.map(url => {
-        return fetch(url)
-            .then(res => res.blob())
-            .then(blob => {
-                const fileName = url.split('/').pop();
-                folder.file(fileName, blob);
-            });
-    });
+    const zip = new JSZip();
 
-    Promise.all(fetchPromises).then(() => {
-        zip.generateAsync({ type: "blob" }).then(content => {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(content);
-            a.download = "downloads.zip";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        });
+    for (const record of selectedRecords) {
+        const metadataRecord = record.metadata_records?.[0];
+        if (!metadataRecord) continue;
+
+        const metadata = metadataRecord.metadata;
+        const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
+        const folder = zip.folder(title);
+
+        // Add metadata as text
+        folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
+
+        // Add downloadable file if available
+        const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL +'/download';
+        const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
+
+        if (downloadURL) {
+            try {
+                const response = await fetch(downloadURL);
+                const blob = await response.blob();
+                const extension = blob.type.split('/')[1] || 'bin';
+                folder.file(`${fileName}.${extension}`, blob);
+            } catch (err) {
+                console.error("Error downloading:", downloadURL, err);
+            }
+        }
+    }
+
+    // Generate and trigger download
+    zip.generateAsync({ type: 'blob' }).then(content => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(content);
+        a.download = 'selected-records.zip';
+        a.click();
     });
 }
+
+
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+// async function downloadAll(event, buttonEl) {
+//     event.preventDefault();
+//
+//     const records = JSON.parse(buttonEl.getAttribute('data-records'));
+//     const zip = new JSZip();
+//     const selectedIds = getSelectedIds();
+//     console.log("Selected Records",selectedIds)
+//     console.log("Selected Records",records)
+
+    // for (const record of records) {
+    //     const metadataRecord = record.metadata_records[0]; // Assuming 1 per record
+    //     const metadata = metadataRecord.metadata;
+    //     const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
+    //     const folder = zip.folder(title);
+    //
+    //     // Add metadata text
+    //     const metadataText = JSON.stringify(metadata, null, 2);
+    //     folder.file('metadata.txt', metadataText);
+    //
+    //     // Download file
+    //     const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL;
+    //     const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
+    //
+    //     if (downloadURL) {
+    //         try {
+    //             const fileResponse = await fetch(downloadURL);
+    //             const blob = await fileResponse.blob();
+    //             folder.file(fileName + '.' + blob.type.split('/')[1], blob);
+    //         } catch (error) {
+    //             console.error("Failed to fetch file:", downloadURL, error);
+    //         }
+    //     }
+    // }
+    // console.log("Here")
+    // //Generate zip and download
+    // zip.generateAsync({ type: "blob" }).then(content => {
+    //     const link = document.createElement('a');
+    //     link.href = URL.createObjectURL(content);
+    //     link.download = "records.zip";
+    //     link.click();
+    // });
+// }
+
+//
+// function downloadAll(event, buttonEl) {
+//     event.preventDefault();
+//
+//     const recordsData = JSON.parse(buttonEl.getAttribute('data-records'));
+//     console.log("Records passed to button:", recordsData);
+//
+//     let downloadUrls = JSON.parse(buttonEl.dataset.downloadUrls)
+//         .filter(url => url.startsWith('https://repository.ocean.gov.za'));
+//     console.log("Download Urls:", downloadUrls)
+//
+//     // let zip = new JSZip();
+//     // let folder = zip.folder("downloads");
+//     //
+//     // let fetchPromises = downloadUrls.map(url => {
+//     //     return fetch(url)
+//     //         .then(res => res.blob())
+//     //         .then(blob => {
+//     //             const fileName = url.split('/').pop();
+//     //             folder.file(fileName, blob);
+//     //         });
+//     // });
+//     //
+//     // Promise.all(fetchPromises).then(() => {
+//     //     zip.generateAsync({ type: "blob" }).then(content => {
+//     //         const a = document.createElement('a');
+//     //         a.href = URL.createObjectURL(content);
+//     //         a.download = "downloads.zip";
+//     //         document.body.appendChild(a);
+//     //         a.click();
+//     //         document.body.removeChild(a);
+//     //     });
+//     // });
+// }
 
 
 
