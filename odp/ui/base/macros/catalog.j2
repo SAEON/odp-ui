@@ -202,6 +202,10 @@
                     <div class="col-auto">
                         <input type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)"> Unselect All
                     </div>
+                    <div class="col-auto">
+                        <input type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)"> Download All
+                    </div>
+
                 </div>
             </div>
 
@@ -229,8 +233,12 @@
                         <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
                             <input type="checkbox" name="check_item" value="{{ record.id }}">
 
-                            <button type="button" class="btn btn-link p-0" data-bs-toggle="modal"
-                                    data-bs-target="#record-subset-popup">
+                            <button type="button"
+                                    class="btn btn-link p-0"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#record-subset-popup"
+                                    onclick="handleShareClick(this)"
+                            >
                                 <i class="bi bi-share"></i>  <img src="{{ url_for('static', filename='images/share-icon.png') }}" height="15px"></a>
 
                             </button>
