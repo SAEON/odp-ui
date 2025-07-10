@@ -3,7 +3,14 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for,Response
+from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for,Response,jsonify,send_file
+from io import BytesIO
+from datetime import datetime
+import json
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.units import inch
 
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
@@ -210,3 +217,85 @@ def proxy_download():
         'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
         'Access-Control-Allow-Origin': '*'
     })
+
+
+def build_metadata_pdf(data):
+    record = data[0]
+    meta = record['metadata_records'][0]['metadata']
+
+    def get_person(info):
+        name = info.get("name", "N/A")
+        email = "N/A"
+        affiliation = "N/A"
+        orcid = "N/A"
+        for aff in info.get("affiliation", []):
+            if "email:" in aff["affiliation"]:
+                affiliation = aff["affiliation"].split(", email:")[0].strip()
+                email = aff["affiliation"].split(", email:")[-1].strip()
+            else:
+                affiliation = aff["affiliation"]
+        for idf in info.get("nameIdentifiers", []):
+            if idf["nameIdentifierScheme"] == "ORCID":
+                orcid = idf["nameIdentifier"]
+        return name, affiliation, email, orcid
+
+    title = meta["titles"][0]["title"]
+    doi = meta["doi"]
+    publisher = meta["publisher"]
+    pub_year = meta["publicationYear"]
+    keywords = "\n- ".join(record["keywords"])
+    abstract = meta["descriptions"][0]["description"]
+    temporal_start = datetime.fromisoformat(record["temporal_start"]).strftime('%d %B %Y')
+    temporal_end = datetime.fromisoformat(record["temporal_end"]).strftime('%d %B %Y')
+
+    geo = meta["geoLocations"][0]["geoLocationBox"]
+    creator = meta["creators"][0]
+    contributor = meta["contributors"][0]
+    c_name, c_aff, c_email, c_orcid = get_person(contributor)
+    cr_name, cr_aff, cr_email, cr_orcid = get_person(creator)
+
+    resource = meta["immutableResource"]
+    license_info = meta["rightsList"][0]
+
+    story = []
+    styles = getSampleStyleSheet()
+    body = ParagraphStyle(name='Body', fontSize=10, leading=14, spaceAfter=12)
+
+    def section(header, content):
+        story.append(Spacer(1, 0.2 * inch))
+        story.append(Paragraph(f"<b>{header}</b>", styles['Heading4']))
+        story.append(Paragraph(content, body))
+
+    # Build sections
+    section("🌊 Marine Information Management System (MIMS)",
+            f"Dataset Title: {title}<br/>DOI: https://doi.org/{doi}<br/>Publisher: {publisher}<br/>Year: {pub_year}")
+    section("📌 Keywords", "- " + keywords.replace("\n", "<br/>- "))
+    section("📅 Temporal Coverage", f"Start: {temporal_start}<br/>End: {temporal_end}")
+    section("📍 Geographic Coverage", f"North: {geo['northBoundLatitude']}°<br/>South: {geo['southBoundLatitude']}°<br/>East: {geo['eastBoundLongitude']}°<br/>West: {geo['westBoundLongitude']}°")
+    section("🧑‍🔬 Contributors & Creators",
+            f"Contributor: {c_name}<br/>Affiliation: {c_aff}<br/>Email: {c_email}<br/>ORCID: https://orcid.org/{c_orcid}<br/><br/>"
+            f"Creator: {cr_name}<br/>Affiliation: {cr_aff}<br/>Email: {cr_email}<br/>ORCID: https://orcid.org/{cr_orcid}")
+    section("📝 Abstract", abstract)
+    section("📂 Resource Details",
+            f"Name: {resource['resourceName']}<br/>Description: {resource['resourceDescription']}<br/>Format: {resource['resourceDownload']['fileFormat']}<br/>Download: {resource['resourceDownload']['downloadURL']}")
+    section("📃 License", f"{license_info['rights']}<br/>Link: {license_info['rightsURI']}")
+    section("🗂 Metadata Schema",
+            f"ID: {record['metadata_records'][0]['schema_id']}<br/>URI: {record['metadata_records'][0]['schema_uri']}")
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    doc.build(story)
+    return buffer
+
+@bp.route('/format/metadata.pdf', methods=['POST'])
+def format_metadata_pdf():
+    metadata = request.get_json()
+    if not metadata:
+        return jsonify({"error": "No metadata provided"}), 400
+
+    try:
+        pdf_buffer = build_metadata_pdf(metadata)
+        pdf_buffer.seek(0)
+        return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name='metadata.pdf')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

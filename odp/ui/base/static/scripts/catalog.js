@@ -252,6 +252,21 @@ function toggleSelectAll(selectAllCheckbox) {
     });
 }
 
+function toggleUnSelectAll() {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+function handleShareClick(recordId) {
+    const wrapper = buttonElement.closest('.record-item');
+    const checkbox = wrapper?.querySelector('input[type="checkbox"][name="check_item"]');
+
+    if (checkbox && !checkbox.checked) {
+        checkbox.checked = true;
+    }
+}
 
 async function downloadSelectedRecords(event, buttonEl) {
     event.preventDefault();
@@ -274,17 +289,32 @@ async function downloadSelectedRecords(event, buttonEl) {
         const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
         const folder = zip.folder(title);
 
-        // Add metadata as text
-        folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
+        // Add metadata as PDF via backend
+        try {
+            const response = await fetch('/catalog/format/metadata.pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([record])  // Send single record in array
+            });
+
+            if (!response.ok) throw new Error("Failed to generate PDF");
+
+            const pdfBlob = await response.blob();
+            folder.file('metadata.pdf', pdfBlob);
+        } catch (err) {
+            console.error("Error generating metadata PDF:", err);
+            // fallback to plain text metadata
+            folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
+        }
 
         // Add downloadable file if available
-        const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL +'/download';
+        const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
         const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
 
         if (downloadURL) {
             try {
-                // Use backend proxy to avoid CORS issues
-                console.log("THIS IS THE URL PASSED !!!!!!",downloadURL)
                 const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
                 const response = await fetch(proxyUrl);
                 const blob = await response.blob();
@@ -306,12 +336,60 @@ async function downloadSelectedRecords(event, buttonEl) {
 }
 
 
-function toggleUnSelectAll() {
-    const checkboxes = document.querySelectorAll('input[name="check_item"]');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-}
+// async function downloadSelectedRecords(event, buttonEl) {
+//     event.preventDefault();
+//
+//     const records = JSON.parse(buttonEl.getAttribute('data-records'));
+//     const selectedIds = getSelectedIds();
+//     console.log("Selected IDs:", selectedIds);
+//
+//     // Filter records based on selectedIds
+//     const selectedRecords = records.filter(record => selectedIds.includes(record.id));
+//     console.log("Selected Records:", selectedRecords);
+//
+//     const zip = new JSZip();
+//
+//     for (const record of selectedRecords) {
+//         const metadataRecord = record.metadata_records?.[0];
+//         if (!metadataRecord) continue;
+//
+//         const metadata = metadataRecord.metadata;
+//         const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
+//         const folder = zip.folder(title);
+//
+//         // Add metadata as text
+//         folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
+//
+//         // Add downloadable file if available
+//         const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL +'/download';
+//         const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
+//
+//         if (downloadURL) {
+//             try {
+//                 // Use backend proxy to avoid CORS issues
+//                 console.log("THIS IS THE URL PASSED !!!!!!",downloadURL)
+//                 const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
+//                 const response = await fetch(proxyUrl);
+//                 const blob = await response.blob();
+//                 const extension = blob.type.split('/')[1] || 'bin';
+//                 folder.file(`${fileName}.${extension}`, blob);
+//             } catch (err) {
+//                 console.error("Error downloading via proxy:", downloadURL, err);
+//             }
+//         }
+//     }
+//
+//     // Generate and trigger download
+//     zip.generateAsync({ type: 'blob' }).then(content => {
+//         const a = document.createElement('a');
+//         a.href = URL.createObjectURL(content);
+//         a.download = 'selected-records.zip';
+//         a.click();
+//     });
+// }
+
+
+
 
 
 //  function copyToClipboard() {
