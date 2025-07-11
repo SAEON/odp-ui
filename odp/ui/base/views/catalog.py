@@ -7,9 +7,11 @@ from flask import Blueprint, abort, current_app, make_response, redirect, render
 from io import BytesIO
 from datetime import datetime
 import json
+
+from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer,Table, TableStyle
 from reportlab.lib.units import inch
 
 from odp.const import ODPMetadataSchema
@@ -218,73 +220,176 @@ def proxy_download():
         'Access-Control-Allow-Origin': '*'
     })
 
-
 def build_metadata_pdf(data):
+    """Return a BytesIO buffer containing a one‑page PDF that mimics the
+    metadata table shown in the screenshots.
+    """
+    # ------------------------------------------------------------------
+    # 1. -------- Extract pieces we need --------------------------------
+    # ------------------------------------------------------------------
     record = data[0]
-    meta = record['metadata_records'][0]['metadata']
+    meta   = record["metadata_records"][0]["metadata"]
 
-    def get_person(info):
-        name = info.get("name", "N/A")
-        email = "N/A"
+    def _get_person(person):
+        """Return (name, affiliation, email, orcid) for a creator / contributor"""
+        name        = person.get("name", "N/A")
         affiliation = "N/A"
-        orcid = "N/A"
-        for aff in info.get("affiliation", []):
+        email       = "N/A"
+        orcid       = "N/A"
+
+        for aff in person.get("affiliation", []):
+            # Example format:  "Oceans and Coastal Research … , email: foo@bar"
             if "email:" in aff["affiliation"]:
-                affiliation = aff["affiliation"].split(", email:")[0].strip()
-                email = aff["affiliation"].split(", email:")[-1].strip()
+                affiliation, email = map(str.strip, aff["affiliation"].split(", email:"))
             else:
                 affiliation = aff["affiliation"]
-        for idf in info.get("nameIdentifiers", []):
-            if idf["nameIdentifierScheme"] == "ORCID":
+
+        for idf in person.get("nameIdentifiers", []):
+            if idf.get("nameIdentifierScheme") == "ORCID":
                 orcid = idf["nameIdentifier"]
+
         return name, affiliation, email, orcid
 
-    title = meta["titles"][0]["title"]
-    doi = meta["doi"]
-    publisher = meta["publisher"]
-    pub_year = meta["publicationYear"]
-    keywords = "\n- ".join(record["keywords"])
-    abstract = meta["descriptions"][0]["description"]
-    temporal_start = datetime.fromisoformat(record["temporal_start"]).strftime('%d %B %Y')
-    temporal_end = datetime.fromisoformat(record["temporal_end"]).strftime('%d %B %Y')
+    # High‑level fields
+    title        = meta["titles"][0]["title"]
+    doi          = meta["doi"]
+    publisher    = meta["publisher"]
+    pub_year     = meta["publicationYear"]
+    keywords     = ", ".join(record["keywords"])
 
-    geo = meta["geoLocations"][0]["geoLocationBox"]
-    creator = meta["creators"][0]
-    contributor = meta["contributors"][0]
-    c_name, c_aff, c_email, c_orcid = get_person(contributor)
-    cr_name, cr_aff, cr_email, cr_orcid = get_person(creator)
+    abstract     = meta["descriptions"][0]["description"]
+    t_start      = datetime.fromisoformat(record["temporal_start"]).strftime("%d %b %Y")
+    t_end        = datetime.fromisoformat(record["temporal_end"]).strftime("%d %b %Y")
 
-    resource = meta["immutableResource"]
-    license_info = meta["rightsList"][0]
+    geo_box      = meta["geoLocations"][0]["geoLocationBox"]
+    geo_str      = (
+        f"North: {geo_box['northBoundLatitude']}\n"
+        f"South: {geo_box['southBoundLatitude']}\n"
+        f"West: {geo_box['westBoundLongitude']}\n"
+        f"East: {geo_box['eastBoundLongitude']}"
+    )
 
-    story = []
-    styles = getSampleStyleSheet()
-    body = ParagraphStyle(name='Body', fontSize=10, leading=14, spaceAfter=12)
+    creator      = meta["creators"][0]
+    contributor  = meta["contributors"][0]
+    cr_name, cr_aff, cr_email, cr_orcid = _get_person(creator)
+    c_name,  c_aff,  c_email,  c_orcid  = _get_person(contributor)
 
-    def section(header, content):
-        story.append(Spacer(1, 0.2 * inch))
-        story.append(Paragraph(f"<b>{header}</b>", styles['Heading4']))
-        story.append(Paragraph(content, body))
+    licence      = meta["rightsList"][0]
+    licence_txt  = (
+        f'<link href="{licence["rightsURI"]}">{licence["rights"]}</link>'
+    )
 
-    # Build sections
-    section("🌊 Marine Information Management System (MIMS)",
-            f"Dataset Title: {title}<br/>DOI: https://doi.org/{doi}<br/>Publisher: {publisher}<br/>Year: {pub_year}")
-    section("📌 Keywords", "- " + keywords.replace("\n", "<br/>- "))
-    section("📅 Temporal Coverage", f"Start: {temporal_start}<br/>End: {temporal_end}")
-    section("📍 Geographic Coverage", f"North: {geo['northBoundLatitude']}°<br/>South: {geo['southBoundLatitude']}°<br/>East: {geo['eastBoundLongitude']}°<br/>West: {geo['westBoundLongitude']}°")
-    section("🧑‍🔬 Contributors & Creators",
-            f"Contributor: {c_name}<br/>Affiliation: {c_aff}<br/>Email: {c_email}<br/>ORCID: https://orcid.org/{c_orcid}<br/><br/>"
-            f"Creator: {cr_name}<br/>Affiliation: {cr_aff}<br/>Email: {cr_email}<br/>ORCID: https://orcid.org/{cr_orcid}")
-    section("📝 Abstract", abstract)
-    section("📂 Resource Details",
-            f"Name: {resource['resourceName']}<br/>Description: {resource['resourceDescription']}<br/>Format: {resource['resourceDownload']['fileFormat']}<br/>Download: {resource['resourceDownload']['downloadURL']}")
-    section("📃 License", f"{license_info['rights']}<br/>Link: {license_info['rightsURI']}")
-    section("🗂 Metadata Schema",
-            f"ID: {record['metadata_records'][0]['schema_id']}<br/>URI: {record['metadata_records'][0]['schema_uri']}")
+    # ------------------------------------------------------------------
+    # 2. -------- Paragraph & table styles ------------------------------
+    # ------------------------------------------------------------------
+    styles           = getSampleStyleSheet()
+    label_style      = ParagraphStyle(
+        "label",
+        parent=styles["BodyText"],
+        fontSize=10,
+        leading=13,
+        spaceAfter=0,
+        spaceBefore=2,
+        leftIndent=0,
+        rightIndent=6,
+        textColor=colors.black,
+        wordWrap="LTR",
+        bold=True,
+    )
+    value_style      = ParagraphStyle(
+        "value",
+        parent=styles["BodyText"],
+        fontSize=10,
+        leading=13,
+        spaceAfter=0,
+        spaceBefore=2,
+    )
+    title_value_style = ParagraphStyle(
+        "title_value",
+        parent=value_style,
+        fontSize=11,
+        leading=14,
+        spaceBefore=0,
+        spaceAfter=2,
+        bold=True,
+    )
 
+    # ------------------------------------------------------------------
+    # 3. -------- Build the table rows ----------------------------------
+    # ------------------------------------------------------------------
+    rows = [
+        [Paragraph("Title",   label_style),
+         Paragraph(title,     title_value_style)],
+
+
+        [Paragraph("DOI", label_style),
+         Paragraph(f'<link href="https://doi.org/{doi}">https://doi.org/{doi}</link>', value_style)],
+
+        [Paragraph("Authors", label_style),
+         Paragraph(f"{cr_name}<br/>{cr_aff}, email: {cr_email}", value_style)],
+
+        [Paragraph("Publisher", label_style),
+         Paragraph(f"{publisher} ({pub_year})", value_style)],
+
+        [Paragraph("Contributors", label_style),
+         Paragraph(
+             f"Contact Person: {c_name}<br/>{c_aff},<br/>email: {c_email}",
+             value_style,
+         )],
+
+        [Paragraph("Abstract", label_style),
+         Paragraph(abstract, value_style)],
+
+        [Paragraph("Data", label_style),
+         Paragraph(licence_txt, value_style)],
+
+        [Paragraph("Temporal extent", label_style),
+         Paragraph(f"{t_start} – {t_end}", value_style)],
+
+        [Paragraph("Geographic extent", label_style),
+         Paragraph(geo_str.replace("\n", "<br/>"), value_style)],
+
+        [Paragraph("Keywords", label_style),
+         Paragraph(keywords, value_style)],
+    ]
+
+    # ------------------------------------------------------------------
+    # 4. -------- Assemble the table & PDF ------------------------------
+    # ------------------------------------------------------------------
+    table = Table(
+        rows,
+        colWidths=[1.6 * inch, 5.3 * inch],  # narrow label / wide value
+        hAlign="LEFT",
+        repeatRows=0,
+    )
+
+    # Grey horizontal rule beneath every row
+    tbl_style = [
+        ("VALIGN",    (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING",(0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 4),
+        ("LINEBELOW", (0, 0), (-1, 0), 0.25, colors.lightgrey),
+    ]
+    # add LINEBELOW for every subsequent row
+    for r in range(1, len(rows)):
+        tbl_style.append(("LINEBELOW", (0, r), (-1, r), 0.25, colors.lightgrey))
+
+    table.setStyle(TableStyle(tbl_style))
+
+    # Build the document
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=40, leftMargin=40, topMargin=40, bottomMargin=40)
+    doc    = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=40,
+        leftMargin=40,
+        topMargin=40,
+        bottomMargin=40,
+    )
+
+    story = [table, Spacer(1, 0.2 * inch)]
     doc.build(story)
+    buffer.seek(0)
     return buffer
 
 @bp.route('/format/metadata.pdf', methods=['POST'])
