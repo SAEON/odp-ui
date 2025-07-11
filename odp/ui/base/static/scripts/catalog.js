@@ -264,11 +264,16 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-async function downloadSelectedRecords(event, buttonEl) {
+async function downloadSelectedRecords(event, buttonEl,record_id) {
     event.preventDefault();
 
+    console.log("R.id: ",record_id,":")
     const records = JSON.parse(buttonEl.getAttribute('data-records'));
-    const selectedIds = getSelectedIds();
+
+    // if record_id is not an empty string, use it; otherwise call getSelectedIds()
+    const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
+
+    // const selectedIds = getSelectedIds();
     console.log("Selected IDs:", selectedIds);
 
     // Filter records based on selectedIds
@@ -326,7 +331,7 @@ async function downloadSelectedRecords(event, buttonEl) {
     zip.generateAsync({ type: 'blob' }).then(content => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(content);
-        a.download = 'selected-records.zip';
+        a.download = 'Records.zip';
         a.click();
     });
 }

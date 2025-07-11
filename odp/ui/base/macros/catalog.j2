@@ -249,7 +249,11 @@
                               and immutable_resource.resourceDownload.downloadURL.startswith('https://repository.ocean.gov.za') %}
 
                                 {% set download_url = immutable_resource.resourceDownload.downloadURL %}
-                                <a href="{{ download_url }}/download" target="_blank"
+{#                                <a href="{{ download_url }}/download" target="_blank"#}
+{#                                   class="">#}
+{#                                     <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px"></a>#}
+                                <a onclick="downloadSelectedRecords(event,this,'{{ record.id }}')"
+                                        data-records='{{ records | tojson | safe }}'
                                    class="">
                                      <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px"></a>
 
@@ -309,8 +313,7 @@
                                         class="btn btn-outline-info"
                                          data-records='{{ records | tojson | safe }}'
                                 >
-                                Share
-                                    record subset link
+                                Share record subset link
                                 </button>
 
                                 {% set download_urls = [] %}
@@ -320,7 +323,7 @@
                                         {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
                                     {% endif %}
                                 {% endfor %}
-                                <button onclick="downloadSelectedRecords(event, this)"
+                                <button onclick="downloadSelectedRecords(event, this,'')"
                                         class="btn btn-outline-info"
                                         data-download-urls='{{ download_urls | tojson | safe }}'
                                         data-records='{{ records | tojson | safe }}'
