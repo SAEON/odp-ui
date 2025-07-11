@@ -259,13 +259,9 @@ function toggleUnSelectAll() {
     });
 }
 
-function handleShareClick(recordId) {
-    const wrapper = buttonElement.closest('.record-item');
-    const checkbox = wrapper?.querySelector('input[type="checkbox"][name="check_item"]');
-
-    if (checkbox && !checkbox.checked) {
-        checkbox.checked = true;
-    }
+function handleShareClick(buttonElement) {
+    const cb = buttonElement.previousElementSibling;   // first child is the <input>
+    if (cb?.type === 'checkbox') cb.checked = true;
 }
 
 async function downloadSelectedRecords(event, buttonEl) {
