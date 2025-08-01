@@ -22,6 +22,9 @@ from odp.ui.base.forms import CatalogSearchForm
 import requests
 
 
+import requests
+
+
 bp = Blueprint(
     'catalog', __name__,
     static_folder=Path(__file__).parent.parent / 'static',
