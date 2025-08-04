@@ -189,14 +189,16 @@
     </div>
 {% endmacro %}
 
-{% macro result_list(records) %}
+{% macro result_list(records,app_name=None) %}
 
     <form id="recordForm">
+    {% if app_name == 'mims' %}
         <div class="card mb-4">
             <div class="card-header d-flex">
                 <div class="row">
-                    <div class="col-auto">
 
+
+                         <div class="col-auto">
                         <input type="checkbox" id="select_all" onclick="toggleSelectAll(this)"> Select All
                     </div>
                     <div class="col-auto">
@@ -205,10 +207,12 @@
                     <div class="col-auto">
                         <button class="btn btn-outline-info" onclick="console.log('Download All!')"> Download All </button>
                     </div>
+
                 </div>
             </div>
 
         </div>
+    {% endif %}
         {% for record in records %}
             {% set metadata = record | select_datacite_metadata %}
             {% set abstract = metadata.descriptions | selectattr('descriptionType', '==', 'Abstract') | map(attribute='description') | first %}
@@ -222,12 +226,13 @@
                         <!-- Left side: DOI -->
                         <div class="col-md-8">
                             {% if record.doi %}
-                                <span>DOI: {{ record.doi }}</span>
+                                <span>DOI: {{ record.doi }}</span> {{ app_name }} --
                             {% else %}
                                 <span>(No DOI)</span>
                             {% endif %}
                         </div>
 
+                     {% if app_name == 'mims' %}
                         <!-- Right side: Checkbox + Share + Download -->
                         <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
                             <input type="checkbox" name="check_item" value="{{ record.id }}">
@@ -242,7 +247,8 @@
 
                             </button>
 
-                            {% if immutable_resource
+                            {% endif %}
+                        {% if immutable_resource
                               and immutable_resource.resourceDownload
                               and immutable_resource.resourceDownload.downloadURL
                               and immutable_resource.resourceDownload.downloadURL.startswith('https://repository.ocean.gov.za') %}
