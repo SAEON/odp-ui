@@ -110,6 +110,7 @@ def index():
     facet_api_query = {}
     facet_ui_query = {}
     facet_fields = {}
+
     for facet_title in facets:
         facet_field = SearchForm.facet_fieldname(facet_title)
         facet_fields[facet_title] = facet_field
@@ -139,6 +140,7 @@ def index():
         form=SearchForm(request.args),
         result=result,
         facet_fields=facet_fields,
+        current_app = 'mims'
     )
 
 
@@ -167,16 +169,12 @@ def view(id):
     catalog_id = current_app.config['CATALOG_ID']
 
     record = cli.get(f'/catalog/{catalog_id}/records/{id}')
-    sdg_vocab = {
-        keyword_obj['id']: keyword_obj['data']
-        for keyword_obj in cli.get(f'/vocabulary/SDG')['terms']
-    }
 
     return render_template(
         'catalog_record.html',
-        record=record, sdg_vocab=sdg_vocab,
+        record=record,
+        current_app='mims',
     )
-
 
 @bp.route('/sitemap.xml')
 @cli.view()
@@ -215,6 +213,8 @@ def subset_record_list():
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
+        # app_name = current_app.config['SESSION_COOKIE_NAME'].split('.')[0]
+        app_name = 'mims'
     )
 
 @bp.route('/proxy-download')
