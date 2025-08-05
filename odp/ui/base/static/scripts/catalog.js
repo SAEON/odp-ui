@@ -194,7 +194,6 @@ function copyCitation() {
 
 function getSelectedIds() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
-    // const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
     const selectedRecords = [];
 
     checkboxes.forEach(cb => {
@@ -238,7 +237,6 @@ function selectedRecordListLink(event,buttonEl) {
     event.preventDefault();
 
     const selectedIds = getSelectedIds();
-    console.log("Selected  list IDs :--", selectedIds,'------------',);
 
     const redirectUrl = buildRedirectUrl(selectedIds);
     console.log("Redirect URL:", redirectUrl);
@@ -336,6 +334,20 @@ async function downloadSelectedRecords(event, buttonEl,record_id) {
     });
 }
 
+
+function downloadSelectedRecords(event, el, recordId) {
+    event.preventDefault();
+    // Show loader
+    var loader = el.querySelector('.download-loader');
+    if (loader) loader.style.display = 'inline-block';
+
+    // Simulate download logic (replace with actual download code)
+    setTimeout(function() {
+        if (loader) loader.style.display = 'none';
+        // Actual download logic here...
+        // For example, window.open(url) or AJAX request
+    }, 2000); // Simulate 2s download
+}
 
 
 
