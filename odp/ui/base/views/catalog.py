@@ -214,7 +214,7 @@ def subset_record_list():
 
     size = 5 #request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
-
+    print(catalog_record_list)
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
