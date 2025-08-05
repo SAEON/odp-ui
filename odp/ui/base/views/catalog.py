@@ -140,7 +140,7 @@ def index():
         form=SearchForm(request.args),
         result=result,
         facet_fields=facet_fields,
-        current_app = 'mims'
+        app_name = 'mims'
     )
 
 
@@ -173,7 +173,7 @@ def view(id):
     return render_template(
         'catalog_record.html',
         record=record,
-        current_app='mims',
+        app_name = 'mims'
     )
 
 @bp.route('/sitemap.xml')
@@ -203,13 +203,11 @@ def subset_record_list():
     # Pass the record IDs as query parameters
 
     #Add page and size on the query paramenters &page=1&size=50
-    page = request.args.getlist('page')[0]
+    page = 1 #request.args.getlist('page')[0]
 
-    size = request.args.getlist('size')[0]
+    size = 5 #request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
-    print("XXXXXXXXX",)
-    print(json.dumps(catalog_record_list))
-    print("sDS")
+
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
