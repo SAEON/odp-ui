@@ -14,6 +14,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer,Table, TableStyle
 from reportlab.lib.units import inch
 
+from odp.config import config
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
 from odp.ui.base import api, cli
@@ -29,6 +30,8 @@ bp = Blueprint(
     'catalog', __name__,
     static_folder=Path(__file__).parent.parent / 'static',
 )
+
+client_id = api.client_id.split('.')[0]
 
 
 @bp.app_template_filter()
@@ -140,7 +143,7 @@ def index():
         form=SearchForm(request.args),
         result=result,
         facet_fields=facet_fields,
-        app_name = 'mims'
+        app_name = client_id
     )
 
 
@@ -173,7 +176,7 @@ def view(id):
     return render_template(
         'catalog_record.html',
         record=record,
-        app_name = 'mims'
+        app_name = client_id
     )
 
 @bp.route('/sitemap.xml')
@@ -208,11 +211,13 @@ def subset_record_list():
     size = 5 #request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
     print(catalog_record_list)
+    client_id = api.client_id.split('.')[0]
+
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
         # app_name = current_app.config['SESSION_COOKIE_NAME'].split('.')[0]
-        app_name = 'mims'
+        app_name = client_id
     )
 
 @bp.route('/proxy-download')
