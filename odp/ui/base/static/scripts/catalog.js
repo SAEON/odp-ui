@@ -262,93 +262,97 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-async function downloadSelectedRecords(event, buttonEl,record_id) {
+async function downloadSelectedRecords(event, buttonEl, record_id) {
     event.preventDefault();
 
-    console.log("R.id: ",record_id,":")
-    const records = JSON.parse(buttonEl.getAttribute('data-records'));
+    // 🔄 Show loader
+    const loader = buttonEl.querySelector('.download-loader');
+    if (loader) loader.style.display = 'inline-block';
 
-    // if record_id is not an empty string, use it; otherwise call getSelectedIds()
-    const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
+    try {
+        console.log("R.id: ", record_id, ":");
+        const records = JSON.parse(buttonEl.getAttribute('data-records'));
 
-    // const selectedIds = getSelectedIds();
-    console.log("Selected IDs:", selectedIds);
+        const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
+        console.log("Selected IDs:", selectedIds);
 
-    // Filter records based on selectedIds
-    const selectedRecords = records.filter(record => selectedIds.includes(record.id));
-    console.log("Selected Records:", selectedRecords);
+        const selectedRecords = records.filter(record => selectedIds.includes(record.id));
+        console.log("Selected Records:", selectedRecords);
 
-    const zip = new JSZip();
+        const zip = new JSZip();
 
-    for (const record of selectedRecords) {
-        const metadataRecord = record.metadata_records?.[0];
-        if (!metadataRecord) continue;
+        for (const record of selectedRecords) {
+            const metadataRecord = record.metadata_records?.[0];
+            if (!metadataRecord) continue;
 
-        const metadata = metadataRecord.metadata;
-        const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
-        const folder = zip.folder(title);
+            const metadata = metadataRecord.metadata;
+            const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
+            const folder = zip.folder(title);
 
-        // Add metadata as PDF via backend
-        try {
-            const response = await fetch('/catalog/format/metadata.pdf', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify([record])  // Send single record in array
-            });
-
-            if (!response.ok) throw new Error("Failed to generate PDF");
-
-            const pdfBlob = await response.blob();
-            folder.file('metadata.pdf', pdfBlob);
-        } catch (err) {
-            console.error("Error generating metadata PDF:", err);
-            // fallback to plain text metadata
-            folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
-        }
-
-        // Add downloadable file if available
-        const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
-        const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
-
-        if (downloadURL) {
             try {
-                const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
-                const response = await fetch(proxyUrl);
-                const blob = await response.blob();
-                const extension = blob.type.split('/')[1] || 'bin';
-                folder.file(`${fileName}.${extension}`, blob);
+                const response = await fetch('/catalog/format/metadata.pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify([record])
+                });
+
+                if (!response.ok) throw new Error("Failed to generate PDF");
+
+                const pdfBlob = await response.blob();
+                folder.file('metadata.pdf', pdfBlob);
             } catch (err) {
-                console.error("Error downloading via proxy:", downloadURL, err);
+                console.error("Error generating metadata PDF:", err);
+                folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
+            }
+
+            const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
+            const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
+
+            if (downloadURL) {
+                try {
+                    const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
+                    const response = await fetch(proxyUrl);
+                    const blob = await response.blob();
+                    const extension = blob.type.split('/')[1] || 'bin';
+                    folder.file(`${fileName}.${extension}`, blob);
+                } catch (err) {
+                    console.error("Error downloading via proxy:", downloadURL, err);
+                }
             }
         }
-    }
 
-    // Generate and trigger download
-    zip.generateAsync({ type: 'blob' }).then(content => {
+        const content = await zip.generateAsync({ type: 'blob' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(content);
         a.download = 'Records.zip';
         a.click();
-    });
-}
 
-
-function downloadSelectedRecords(event, el, recordId) {
-    event.preventDefault();
-    // Show loader
-    var loader = el.querySelector('.download-loader');
-    if (loader) loader.style.display = 'inline-block';
-
-    // Simulate download logic (replace with actual download code)
-    setTimeout(function() {
+    } catch (err) {
+        console.error("Download failed:", err);
+        alert("Failed to download records. Please try again.");
+    } finally {
+        // ✅ Hide loader
         if (loader) loader.style.display = 'none';
-        // Actual download logic here...
-        // For example, window.open(url) or AJAX request
-    }, 2000); // Simulate 2s download
+    }
 }
 
+
+// function downloadSelectedRecords(event, el, recordId) {
+//     event.preventDefault();
+//     // Show loader
+//     var loader = el.querySelector('.download-loader');
+//     if (loader) loader.style.display = 'inline-block';
+//
+//     // Simulate download logic (replace with actual download code)
+//     setTimeout(function() {
+//         if (loader) loader.style.display = 'none';
+//         // Actual download logic here...
+//         // For example, window.open(url) or AJAX request
+//     }, 2000); // Simulate 2s download
+// }
+//
 
 
 
