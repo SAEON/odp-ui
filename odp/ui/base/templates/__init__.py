@@ -142,6 +142,7 @@ class Button:
     object_id: str = None
     scope: str = None
     description: str = None
+    endpoint_params: dict = None
 
 
 create_btn = partial(

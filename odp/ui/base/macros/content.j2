@@ -126,8 +126,10 @@
         {% set btn_label = button.label %}
     {% endif %}
 
+    {% set endpoint_args = button.endpoint_params if button.endpoint_params else dict(id=button.object_id) %}
+
     {% if button.prompt %}
-        <form action="{{ url_for(button.endpoint, id=button.object_id) }}" method="post">
+        <form action="{{ url_for(button.endpoint, **endpoint_args) }}" method="post">
             <button type="submit" class="{{ btn_class }}" {{ 'disabled' if disabled }}
                     onclick="return confirm('{{ button.prompt % button.prompt_args }}')"
                     {% if button.description %}title="{{ button.description }}{% endif %}">
@@ -135,7 +137,7 @@
             </button>
         </form>
     {% else %}
-        <a href="{{ url_for(button.endpoint, id=button.object_id) }}"
+        <a href="{{ url_for(button.endpoint, **endpoint_args) }}"
            class="{{ btn_class }} {{ 'disabled' if disabled }}">
             {{ btn_label }}
         </a>
