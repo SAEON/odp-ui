@@ -5,9 +5,9 @@
 {% set pagination %}
     <div class="my-4 mx-3">
         {{ pagination(
-            result.page,
-            result.pages,
-            result.total,
+            catalog_record_list.page,
+            catalog_record_list.pages,
+            catalog_record_list.total,
             items_singular='dataset',
             items_plural='datasets',
             text_color='light',
@@ -21,26 +21,23 @@
         <div class="container-xxl">
             <div class="d-flex justify-content-center align-items-start">
                 <div class="flex-grow-evenly">
-
-                    {{ facet_panel(facet_fields, result.facets, **dict(request.args)) }}
                 </div>
+
                 <div class="mx-5 w-50">
                     <div class="mb-5">
-                        {{ filtered_search_proxy(form) }}
+
                     </div>
-                    {{ pagination }}
+                            {{ pagination }}
 {#                    <div class="d-flex justify-content-end p-3">#}
-{#                        {{ check_all(right=true) }}#}
+{#
 {#                    </div>#}
                     <div class="mb-5">
-                        {{ result_list(result['items'],app_name) }}
+                         {{ result_list(catalog_record_list['items'],app_name) }}
                     </div>
-                    {% if result.total > 0 %}
                         {{ pagination }}
-                    {% endif %}
                 </div>
                 <div class="flex-grow-evenly">
-                    {{ filter_panel(form, facet_fields) }}
+
                 </div>
             </div>
         </div>
@@ -53,5 +50,6 @@
         createFilterMap();
         initCheckAll();
         initFilteredSearchProxy('rank desc');
+
     </script>
 {% endblock %}
