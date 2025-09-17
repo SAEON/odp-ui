@@ -339,31 +339,57 @@ async function downloadSelectedRecords(event, buttonEl, record_id) {
 }
 
 
-// function downloadSelectedRecords(event, el, recordId) {
-//     event.preventDefault();
-//     // Show loader
-//     var loader = el.querySelector('.download-loader');
-//     if (loader) loader.style.display = 'inline-block';
-//
-//     // Simulate download logic (replace with actual download code)
-//     setTimeout(function() {
-//         if (loader) loader.style.display = 'none';
-//         // Actual download logic here...
-//         // For example, window.open(url) or AJAX request
-//     }, 2000); // Simulate 2s download
-// }
-//
+function createAndDisplayLink(event, button) {
+                // This function acts as a bridge to the existing selectedRecordListLink,
+                // but ensures the output is directed to our new input field.
+                // It temporarily renames the target input to what the old function expects.
+                const targetInput = document.getElementById('record-subset-link');
+                const oldId = 'record-subsetilink';
+                const oldElement = document.getElementById(oldId);
 
+                // If an element with the old ID exists, we hide it to avoid confusion.
+                if (oldElement) {
+                    oldElement.style.display = 'none';
+                }
 
+                // The original selectedRecordListLink function expects a <p> tag with id 'record-subsetilink'
+                // and sets its innerHTML. We'll create a temporary one for it to use.
+                let tempP = document.createElement('p');
+                tempP.id = oldId;
+                tempP.style.display = 'none';
+                document.body.appendChild(tempP);
 
+                // Call the original function
+                selectedRecordListLink(event, button);
 
-//  function copyToClipboard() {
-//    const copyText = document.getElementById('record-subsetilink').innerText;
-//    const textarea = document.createElement('textarea');
-//    textarea.value = copyText;
-//    document.body.appendChild(textarea);
-//    textarea.select();
-//    document.execCommand('copy');
-//    document.body.removeChild(textarea);
-//    alert("Copied the text: " + copyText);
-//}
+                // The original function is likely asynchronous or has a delay.
+                // We'll check for the result and update our input.
+                setTimeout(() => {
+                    if (tempP.innerHTML) {
+                        // Assuming the link is plain text or inside an <a> tag.
+                        const linkElement = tempP.querySelector('a');
+                        if (linkElement) {
+                            targetInput.value = linkElement.href;
+                        } else {
+                            targetInput.value = tempP.innerText;
+                        }
+                    }
+                    document.body.removeChild(tempP); // Clean up the temporary element.
+                }, 500); // Adjust delay if needed
+            }
+
+            function copyToClipboard(elementSelector) {
+                const element = document.querySelector(elementSelector);
+                if (element && element.value) {
+                    navigator.clipboard.writeText(element.value).then(() => {
+                        // Optional: give user feedback
+                        const originalButtonText = document.querySelector(`${elementSelector} + button`).innerHTML;
+                        document.querySelector(`${elementSelector} + button`).innerHTML = 'Copied!';
+                        setTimeout(() => {
+                            document.querySelector(`${elementSelector} + button`).innerHTML = originalButtonText;
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy text: ', err);
+                    });
+                }
+            }
