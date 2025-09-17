@@ -194,23 +194,40 @@
     <form id="recordForm">
         {% if app_name == 'MIMS' %}
             <div class="card mb-4">
-                <div class="card-header d-flex">
-                    <div class="row">
-
-
-                        <div class="col-auto">
-                            <input type="checkbox" id="select_all" onclick="toggleSelectAll(this)"> Select All
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="form-check me-3">
+                            <input class="form-check-input" type="checkbox" id="select_all" onclick="toggleSelectAll(this)">
+                            <label class="form-check-label" for="select_all">Select All</label>
                         </div>
-                        <div class="col-auto">
-                            <input type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)"> Unselect All
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)">
+                            <label class="form-check-label" for="unselect_all">Unselect All</label>
                         </div>
-                        <div class="col-auto">
-                            {#                        <button class="btn btn-outline-info" onclick="console.log('Download All!')"> Download All </button>#}
-                        </div>
-
+                    </div>
+                    <div>
+                        {% set download_urls = [] %}
+                        {% for record in records %}
+                            {% set metadata = record | select_datacite_metadata %}
+                            {% if metadata and metadata.immutableResource and metadata.immutableResource.resourceDownload %}
+                                {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
+                            {% endif %}
+                        {% endfor %}
+                        <button onclick="downloadSelectedRecords(event, this,'')"
+                                class="btn btn-outline-info"
+                                data-download-urls='{{ download_urls | tojson | safe }}'
+                                data-records='{{ records | tojson | safe }}'
+                        >
+                            <img src="{{ url_for('static', filename='images/download-icon.png') }}"
+                                 height="15px" class="me-1">
+                            <span class="download-loader" style="display:none;">
+                                <span class="spinner-border spinner-border-sm text-primary" role="status"
+                                      aria-hidden="true"></span>
+                            </span>
+                            Download Selected
+                        </button>
                     </div>
                 </div>
-
             </div>
         {% endif %}
         {% for record in records %}
@@ -297,15 +314,6 @@
         {% endfor %}
 
 
-
-        {% if 'subset' is not in request.url %}
-
-            <button type="button" class="btn btn-outline-info btn-action" data-bs-toggle="modal"
-                    data-bs-target="#record-subset-popup">
-                Select Records Subset
-            </button>
-
-        {% endif %}
         <div class="modal fade" id="record-subset-popup" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content">
@@ -316,65 +324,39 @@
 
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-auto">
-
-                                <button onclick="goToSelectedRecordList(event)"
-                                        class="btn btn-outline-info"
-                                >
-                                    Got to
-                                    record subset
-                                </button>
-                                <button onclick="selectedRecordListLink(event,this)"
-                                        class="btn btn-outline-info"
-                                        data-records='{{ records | tojson | safe }}'
-                                >
-                                    Share record subset link
-                                </button>
-
-                                {% set download_urls = [] %}
-                                {% for record in records %}
-                                    {% set metadata = record | select_datacite_metadata %}
-                                    {% if metadata and metadata.immutableResource and metadata.immutableResource.resourceDownload %}
-                                        {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
-                                    {% endif %}
-                                {% endfor %}
-                                <button onclick="downloadSelectedRecords(event, this,'')"
-                                        class="btn btn-outline-info"
-                                        data-download-urls='{{ download_urls | tojson | safe }}'
-                                        data-records='{{ records | tojson | safe }}'
-                                >
-                                    <img src="{{ url_for('static', filename='images/download-icon.png') }}"
-                                         height="15px">
-                                    <span class="download-loader" style="display:none;">
-                                        <span class="spinner-border spinner-border-sm text-primary" role="status"
-                                              aria-hidden="true"></span>
-                                    </span>
-                                    Download Selected Records
-
-                                </button>
-
+                            <div class="col-md-4">
+                                <div class="d-grid gap-2">
+                                    <button onclick="goToSelectedRecordList(event)"
+                                            class="btn btn-outline-info">
+                                        Go to record subset
+                                    </button>
+                                    <button onclick="createAndDisplayLink(event, this)"
+                                            class="btn btn-outline-info"
+                                            data-records='{{ records | tojson | safe }}'>
+                                        Create shareable link
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="record-subset-link" class="form-label">Shareable Link</label>
+                                <div class="input-group">
+                                    <input type="text" id="record-subset-link" class="form-control" readonly placeholder="Click 'Create shareable link' to generate a link">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#record-subset-link')">Copy</button>
+                                </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-auto">
-                                <p id='record-subsetilink'></p>
-
-                            </div>
-                        </div>
-
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             Close
                         </button>
-
                     </div>
                 </div>
             </div>
         </div>
 
-
+        
     </form>
 
 {% endmacro %}
@@ -460,7 +442,7 @@
         {% if datacite_metadata.relatedIdentifiers %}
             <ul class="list-unstyled">
                 {% for related_id in datacite_metadata.relatedIdentifiers | selectattr('relationType', '!=', 'HasPart') | sort(attribute='relationType,relatedIdentifier') %}
-                    {% set relation_type = related_id.relationType | uncamel | lower %}
+                    {% set relation_type = related_id.relationType | lower %}
                     <li>
                         This digital object <b>{{ relation_type }}</b>
                         {{ _render_related_identifier(related_id) }}
@@ -502,7 +484,7 @@
 
             {% elif prop == 'Contributors' %}
                 {% for contributor in datacite_metadata.contributors %}
-                    <p>{{ contributor.contributorType | datacite_enum }}: {{ contributor.name }}<br/>
+                    <p>{{ contributor.contributorType }}: {{ contributor.name }}<br/>
                         <small>{{ contributor.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
                     </p>
                 {% endfor %}
@@ -571,9 +553,7 @@
             {% elif prop == 'Related resources' %}
                 {{ related_ids }}
 
-            {% elif prop == 'SDGs' %}
-                    {{ sdg }}
-                {% endif %}
+            {% endif %}
         {% endcall %}
     </div>
 </div>
@@ -695,4 +675,3 @@
         </div>
     </div>
 {% endmacro %}
-
