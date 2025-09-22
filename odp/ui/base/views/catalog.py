@@ -237,63 +237,106 @@ def build_metadata_pdf(data):
     # ------------------------------------------------------------------
     # 1. -------- Extract pieces we need --------------------------------
     # ------------------------------------------------------------------
+    print("DAta",data)
     record = data[0]
-    meta   = record["metadata_records"][0]["metadata"]
+    # Find the ISO19115 metadata record for richer details
+    iso_record = next((mr for mr in record.get("metadata_records", []) if mr.get("schema_id") == "SAEON.ISO19115"),
+                      None)
 
-    def _get_person(person):
-        """Return (name, affiliation, email, orcid) for a creator / contributor"""
-        name        = person.get("name", "N/A")
-        affiliation = "N/A"
-        email       = "N/A"
-        orcid       = "N/A"
+    # Fallback to the DataCite4 record if ISO is not available
+    datacite_record = next(
+        (mr for mr in record.get("metadata_records", []) if mr.get("schema_id") == "SAEON.DataCite4"), None)
 
-        for aff in person.get("affiliation", []):
-            # Example format:  "Oceans and Coastal Research … , email: foo@bar"
-            if "email:" in aff["affiliation"]:
-                affiliation, email = map(str.strip, aff["affiliation"].split(", email:"))
-            else:
-                affiliation = aff["affiliation"]
+    if not iso_record and not datacite_record:
+        raise ValueError("Could not find a valid ISO19115 or DataCite4 metadata record.")
 
-        for idf in person.get("nameIdentifiers", []):
-            if idf.get("nameIdentifierScheme") == "ORCID":
-                orcid = idf["nameIdentifier"]
+    # Use ISO record as the primary source for specific fields if available
+    if iso_record:
+        meta = iso_record["metadata"]
+        title = meta.get("title", "N/A")
+        doi = meta.get("fileIdentifier", "N/A")
+        publisher = next(
+            (p.get("organizationName") for p in meta.get("responsibleParties", []) if p.get("role") == "publisher"),
+            "N/A")
 
-        return name, affiliation, email, orcid
+        # Extract creators from responsibleParties with 'originator' role
+        creators = [p for p in meta.get("responsibleParties", []) if p.get("role") == "originator"]
+        creator = creators[0] if creators else {}
+        cr_name = creator.get("individualName", "N/A")
+        cr_aff = creator.get("organizationName", "N/A")
+        cr_email = creator.get("contactInfo", "N/A").split("email: ")[-1] if creator.get("contactInfo") and "email:" in \
+                                                                             creator["contactInfo"] else "N/A"
 
-    # High‑level fields
-    title        = meta["titles"][0]["title"]
-    doi          = meta["doi"]
-    publisher    = meta["publisher"]
-    pub_year     = meta["publicationYear"]
-    keywords     = ", ".join(record["keywords"])
+        # Extract contributor from responsibleParties with 'pointOfContact' role
+        contact_person = next((p for p in meta.get("responsibleParties", []) if p.get("role") == "pointOfContact"), {})
+        c_name = contact_person.get("individualName", "N/A")
+        c_aff = contact_person.get("organizationName", "N/A")
+        c_email = contact_person.get("contactInfo", "N/A").split("email: ")[-1] if contact_person.get(
+            "contactInfo") and "email:" in contact_person["contactInfo"] else "N/A"
 
-    abstract     = meta["descriptions"][0]["description"]
-    t_start      = datetime.fromisoformat(record["temporal_start"]).strftime("%d %b %Y")
-    t_end        = datetime.fromisoformat(record["temporal_end"]).strftime("%d %b %Y")
+        abstract = meta.get("abstract", "N/A")
+        licence_txt = f'<link href="{meta["constraints"][0]["rightsURI"]}">{meta["constraints"][0]["rights"]}</link>' if meta.get(
+            "constraints") else "N/A"
 
-    geo_box      = meta["geoLocations"][0]["geoLocationBox"]
-    geo_str      = (
-        f"North: {geo_box['northBoundLatitude']}\n"
-        f"South: {geo_box['southBoundLatitude']}\n"
-        f"West: {geo_box['westBoundLongitude']}\n"
-        f"East: {geo_box['eastBoundLongitude']}"
-    )
+        # Extract geo and temporal from ISO record
+        geo_box = meta.get("extent", {}).get("geographicElements", [{}])[0].get("boundingBox", {})
+        geo_str = (
+            f"North: {geo_box.get('northBoundLatitude', 'N/A')}\n"
+            f"South: {geo_box.get('southBoundLatitude', 'N/A')}\n"
+            f"West: {geo_box.get('westBoundLongitude', 'N/A')}\n"
+            f"East: {geo_box.get('eastBoundLongitude', 'N/A')}"
+        )
+        pub_year = datetime.fromisoformat(meta.get("metadataTimestamp")).year if meta.get(
+            "metadataTimestamp") else "N/A"
 
-    creator      = meta["creators"][0]
-    contributor  = meta["contributors"][0]
-    cr_name, cr_aff, cr_email, cr_orcid = _get_person(creator)
-    c_name,  c_aff,  c_email,  c_orcid  = _get_person(contributor)
+    # Fallback to DataCite4 record for primary data fields
+    elif datacite_record:
+        meta = datacite_record["metadata"]
+        title = meta["titles"][0]["title"]
+        doi = meta["doi"]
+        publisher = meta["publisher"]
+        pub_year = meta["publicationYear"]
 
-    licence      = meta["rightsList"][0]
-    licence_txt  = (
-        f'<link href="{licence["rightsURI"]}">{licence["rights"]}</link>'
-    )
+        def _get_person_from_datacite(person):
+            name = person.get("name", "N/A")
+            affiliation = "N/A"
+            email = "N/A"
 
-    # ------------------------------------------------------------------
-    # 2. -------- Paragraph & table styles ------------------------------
-    # ------------------------------------------------------------------
-    styles           = getSampleStyleSheet()
-    label_style      = ParagraphStyle(
+            for aff in person.get("affiliation", []):
+                if "email:" in aff["affiliation"]:
+                    affiliation, email = map(str.strip, aff["affiliation"].split(", email:"))
+                else:
+                    affiliation = aff["affiliation"]
+            return name, affiliation, email
+
+        creator = meta["creators"][0]
+        cr_name, cr_aff, cr_email = _get_person_from_datacite(creator)
+
+        contributor = next((c for c in meta.get("contributors", []) if c.get("contributorType") == "ContactPerson"), {})
+        c_name, c_aff, c_email = _get_person_from_datacite(contributor)
+
+        abstract = meta["descriptions"][0]["description"]
+        licence = meta["rightsList"][0]
+        licence_txt = f'<link href="{licence["rightsURI"]}">{licence["rights"]}</link>'
+
+        geo_box = meta["geoLocations"][0]["geoLocationBox"]
+        geo_str = (
+            f"North: {geo_box['northBoundLatitude']}\n"
+            f"South: {geo_box['southBoundLatitude']}\n"
+            f"West: {geo_box['westBoundLongitude']}\n"
+            f"East: {geo_box['eastBoundLongitude']}"
+        )
+
+    # These fields are at the top level and don't require schema-specific logic
+    keywords = ", ".join(record["keywords"])
+    t_start = datetime.fromisoformat(record["temporal_start"]).strftime("%d %b %Y")
+    t_end = datetime.fromisoformat(record["temporal_end"]).strftime("%d %b %Y")
+
+    # ... (rest of your code for creating the PDF table, styles, etc.)
+    # The rest of the function remains the same and can be copied from your original code
+
+    styles = getSampleStyleSheet()
+    label_style = ParagraphStyle(
         "label",
         parent=styles["BodyText"],
         fontSize=10,
@@ -306,7 +349,7 @@ def build_metadata_pdf(data):
         wordWrap="LTR",
         bold=True,
     )
-    value_style      = ParagraphStyle(
+    value_style = ParagraphStyle(
         "value",
         parent=styles["BodyText"],
         fontSize=10,
@@ -323,72 +366,48 @@ def build_metadata_pdf(data):
         spaceAfter=2,
         bold=True,
     )
-
-    # ------------------------------------------------------------------
-    # 3. -------- Build the table rows ----------------------------------
-    # ------------------------------------------------------------------
     rows = [
-        [Paragraph("Title",   label_style),
-         Paragraph(title,     title_value_style)],
-
-
+        [Paragraph("Title", label_style),
+         Paragraph(title, title_value_style)],
         [Paragraph("DOI", label_style),
          Paragraph(f'<link href="https://doi.org/{doi}">https://doi.org/{doi}</link>', value_style)],
-
         [Paragraph("Authors", label_style),
          Paragraph(f"{cr_name}<br/>{cr_aff}, email: {cr_email}", value_style)],
-
         [Paragraph("Publisher", label_style),
          Paragraph(f"{publisher} ({pub_year})", value_style)],
-
         [Paragraph("Contributors", label_style),
          Paragraph(
              f"Contact Person: {c_name}<br/>{c_aff},<br/>email: {c_email}",
              value_style,
          )],
-
         [Paragraph("Abstract", label_style),
          Paragraph(abstract, value_style)],
-
         [Paragraph("Data", label_style),
          Paragraph(licence_txt, value_style)],
-
         [Paragraph("Temporal extent", label_style),
          Paragraph(f"{t_start} – {t_end}", value_style)],
-
         [Paragraph("Geographic extent", label_style),
          Paragraph(geo_str.replace("\n", "<br/>"), value_style)],
-
         [Paragraph("Keywords", label_style),
          Paragraph(keywords, value_style)],
     ]
-
-    # ------------------------------------------------------------------
-    # 4. -------- Assemble the table & PDF ------------------------------
-    # ------------------------------------------------------------------
     table = Table(
         rows,
-        colWidths=[1.6 * inch, 5.3 * inch],  # narrow label / wide value
+        colWidths=[1.6 * inch, 5.3 * inch],
         hAlign="LEFT",
         repeatRows=0,
     )
-
-    # Grey horizontal rule beneath every row
     tbl_style = [
-        ("VALIGN",    (0, 0), (-1, -1), "TOP"),
-        ("TOPPADDING",(0, 0), (-1, -1), 2),
-        ("BOTTOMPADDING",(0, 0), (-1, -1), 4),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("TOPPADDING", (0, 0), (-1, -1), 2),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("LINEBELOW", (0, 0), (-1, 0), 0.25, colors.lightgrey),
     ]
-    # add LINEBELOW for every subsequent row
     for r in range(1, len(rows)):
         tbl_style.append(("LINEBELOW", (0, r), (-1, r), 0.25, colors.lightgrey))
-
     table.setStyle(TableStyle(tbl_style))
-
-    # Build the document
     buffer = BytesIO()
-    doc    = SimpleDocTemplate(
+    doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
         rightMargin=40,
@@ -396,7 +415,6 @@ def build_metadata_pdf(data):
         topMargin=40,
         bottomMargin=40,
     )
-
     story = [table, Spacer(1, 0.2 * inch)]
     doc.build(story)
     buffer.seek(0)
