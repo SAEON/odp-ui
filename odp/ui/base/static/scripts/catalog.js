@@ -235,11 +235,25 @@ function selectedRecordListLink(event,buttonEl) {
     document.getElementById('record-subsetilink').innerText = redirectUrl;
 }
 
+function updateButtonStates() {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    const unselectAllCheckbox = document.getElementById('unselect_all');
+    const downloadSelectedBtn = document.getElementById('download-selected-btn');
+
+    if (unselectAllCheckbox) {
+        unselectAllCheckbox.disabled = checkboxes.length === 0;
+    }
+    if (downloadSelectedBtn) {
+        downloadSelectedBtn.disabled = checkboxes.length === 0;
+    }
+}
+
 function toggleSelectAll(selectAllCheckbox) {
     const checkboxes = document.querySelectorAll('input[name="check_item"]');
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
+    updateButtonStates();
 }
 
 function toggleUnSelectAll() {
@@ -247,6 +261,11 @@ function toggleUnSelectAll() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
+    const selectAllCheckbox = document.getElementById('select_all');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+    }
+    updateButtonStates();
 }
 
 function handleShareClick(buttonElement) {
@@ -257,7 +276,7 @@ function handleShareClick(buttonElement) {
 async function downloadSelectedRecords(event, buttonEl, record_id) {
     event.preventDefault();
 
-    // 🔄 Show loader
+    // Show loader
     const loader = buttonEl.querySelector('.download-loader');
     if (loader) loader.style.display = 'inline-block';
 
@@ -274,7 +293,9 @@ async function downloadSelectedRecords(event, buttonEl, record_id) {
         const zip = new JSZip();
 
         for (const record of selectedRecords) {
-            const metadataRecord = record.metadata_records?.[0];
+
+            const metadataRecord = record.metadata_records?.find(mr => mr.schema_id === "SAEON.DataCite4");
+
             if (!metadataRecord) continue;
 
             const metadata = metadataRecord.metadata;
@@ -325,7 +346,7 @@ async function downloadSelectedRecords(event, buttonEl, record_id) {
         console.error("Download failed:", err);
         alert("Failed to download records. Please try again.");
     } finally {
-        // ✅ Hide loader
+        // Hide loader
         if (loader) loader.style.display = 'none';
     }
 }
@@ -385,3 +406,11 @@ function createAndDisplayLink(event, button) {
                     });
                 }
             }
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateButtonStates();
+    const itemCheckboxes = document.querySelectorAll('input[name="check_item"]');
+    itemCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateButtonStates);
+    });
+});

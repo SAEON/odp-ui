@@ -213,7 +213,8 @@
                                 {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
                             {% endif %}
                         {% endfor %}
-                        <button onclick="downloadSelectedRecords(event, this,'')"
+                        <button id="download-selected-btn"
+                                onclick="downloadSelectedRecords(event, this,'')"
                                 class="btn btn-outline-info"
                                 data-download-urls='{{ download_urls | tojson | safe }}'
                                 data-records='{{ records | tojson | safe }}'
