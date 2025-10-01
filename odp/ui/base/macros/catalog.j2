@@ -197,11 +197,13 @@
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="form-check me-3">
-                            <input class="form-check-input" type="checkbox" id="select_all" onclick="toggleSelectAll(this)">
+                            <input class="form-check-input" type="checkbox" id="select_all"
+                                   onclick="toggleSelectAll(this)">
                             <label class="form-check-label" for="select_all">Select All</label>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)">
+                            <input class="form-check-input" type="checkbox" id="unselect_all"
+                                   onclick="toggleUnSelectAll(this)">
                             <label class="form-check-label" for="unselect_all">Unselect All</label>
                         </div>
                     </div>
@@ -304,7 +306,7 @@
                     <h5 class="card-title">
                         <a href="{{ url_for('catalog.view', id=record.doi or record.id) }}"
                            class="text-decoration-none text-dark fw-bold">
-                            {{ metadata.titles[0].title   }}
+                            {{ metadata.titles[0].title }}
                         </a>
                     </h5>
                     <p class="card-text">
@@ -341,8 +343,11 @@
                             <div class="col-md-8">
                                 <label for="record-subset-link" class="form-label">Shareable Link</label>
                                 <div class="input-group">
-                                    <input type="text" id="record-subset-link" class="form-control" readonly placeholder="Click 'Create shareable link' to generate a link">
-                                    <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#record-subset-link')">Copy</button>
+                                    <input type="text" id="record-subset-link" class="form-control" readonly
+                                           placeholder="Click 'Create shareable link' to generate a link">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="copyToClipboard('#record-subset-link')">Copy
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -357,7 +362,7 @@
             </div>
         </div>
 
-        
+
     </form>
 
 {% endmacro %}
@@ -532,7 +537,10 @@
                 {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
 
             {% elif prop == 'Keywords' %}
-                {{ record.keywords | sort | join(', ') }}
+                {% for keyword in record.keywords | sort %}
+                    {# Use the absolute path /catalog/ to ensure links always point to the main search page #}
+                    <a href="/catalog/?q={{ keyword | urlencode }}">{{ keyword }}</a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
 
             {% elif prop == 'Data' %}
                 <div class="d-flex justify-content-between">

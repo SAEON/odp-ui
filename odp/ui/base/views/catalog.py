@@ -328,9 +328,6 @@ def build_metadata_pdf(data):
     t_start = datetime.fromisoformat(record["temporal_start"]).strftime("%d %b %Y")
     t_end = datetime.fromisoformat(record["temporal_end"]).strftime("%d %b %Y")
 
-    # ... (rest of your code for creating the PDF table, styles, etc.)
-    # The rest of the function remains the same and can be copied from your original code
-
     styles = getSampleStyleSheet()
     label_style = ParagraphStyle(
         "label",
