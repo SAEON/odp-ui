@@ -3,7 +3,8 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for,Response,jsonify,send_file
+from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for, Response, \
+    jsonify, send_file
 from io import BytesIO
 from datetime import datetime
 import json
@@ -11,7 +12,7 @@ import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer,Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.units import inch
 
 from odp.config import config
@@ -22,9 +23,7 @@ from odp.ui.base.forms import CatalogSearchForm
 
 import requests
 
-
 import requests
-
 
 bp = Blueprint(
     'catalog', __name__,
@@ -143,7 +142,7 @@ def index():
         form=CatalogSearchForm(request.args),
         result=result,
         facet_fields=facet_fields,
-        app_name = client_id
+        app_name=client_id
     )
 
 
@@ -162,7 +161,7 @@ def search():
         if not query[facet_field := CatalogSearchForm.facet_fieldname(facet_title)]:
             query.pop(facet_field)
 
-    return redirect(url_for( '.index', **query))
+    return redirect(url_for('.index', **query))
 
 
 @bp.route('/<path:id>')
@@ -176,19 +175,9 @@ def view(id):
     return render_template(
         'catalog_record.html',
         record=record,
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        current_app='mims',
->>>>>>> 8ca3c56 (Sketch app name needs a fix)
-=======
-        app_name = 'mims'
->>>>>>> 353b06f (download button on mims)
-=======
-        app_name = client_id
->>>>>>> a8cfa97 (added mims catalog)
+        app_name=client_id
     )
+
 
 @bp.route('/sitemap.xml')
 @cli.view()
@@ -216,30 +205,30 @@ def subset_record_list():
     record_ids_query = f"record_id_or_doi_list={record_ids_query}"
     # Pass the record IDs as query parameters
 
-    #Add page and size on the query paramenters &page=1&size=50
-    page = 1 #request.args.getlist('page')[0]
+    # Add page and size on the query paramenters &page=1&size=50
+    page = 1  # request.args.getlist('page')[0]
 
-    size = 5 #request.args.getlist('size')[0]
+    size = 5  # request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
-    print(catalog_record_list)
     client_id = api.client_id.split('.')[0]
 
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
         # app_name = current_app.config['SESSION_COOKIE_NAME'].split('.')[0]
-        app_name = client_id
+        app_name=client_id
     )
+
 
 @bp.route('/proxy-download')
 def proxy_download():
     url = request.args.get('url')
-    print(url)
     r = requests.get(url)
     return Response(r.content, headers={
         'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
         'Access-Control-Allow-Origin': '*'
     })
+
 
 def build_metadata_pdf(data):
     """Return a BytesIO buffer containing a one‑page PDF that mimics the
@@ -248,7 +237,6 @@ def build_metadata_pdf(data):
     # ------------------------------------------------------------------
     # 1. -------- Extract pieces we need --------------------------------
     # ------------------------------------------------------------------
-    print("DAta",data)
     record = data[0]
     # Find the ISO19115 metadata record for richer details
     iso_record = next((mr for mr in record.get("metadata_records", []) if mr.get("schema_id") == "SAEON.ISO19115"),
@@ -427,6 +415,7 @@ def build_metadata_pdf(data):
     doc.build(story)
     buffer.seek(0)
     return buffer
+
 
 @bp.route('/format/metadata.pdf', methods=['POST'])
 def format_metadata_pdf():

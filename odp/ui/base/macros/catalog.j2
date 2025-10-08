@@ -217,7 +217,7 @@
                         {% endfor %}
                         <button id="download-selected-btn"
                                 onclick="downloadSelectedRecords(event, this,'')"
-                                class="btn btn-outline-info"
+                                class="btn btn-outline-primary btn-action"
                                 data-download-urls='{{ download_urls | tojson | safe }}'
                                 data-records='{{ records | tojson | safe }}'
                         >
@@ -330,11 +330,11 @@
                             <div class="col-md-4">
                                 <div class="d-grid gap-2">
                                     <button onclick="goToSelectedRecordList(event)"
-                                            class="btn btn-outline-info">
+                                            class="btn btn-outline-primary btn-action">
                                         Go to record subset
                                     </button>
                                     <button onclick="createAndDisplayLink(event, this)"
-                                            class="btn btn-outline-info"
+                                            class="btn btn-outline-primary btn-action"
                                             data-records='{{ records | tojson | safe }}'>
                                         Create shareable link
                                     </button>
@@ -538,8 +538,11 @@
 
             {% elif prop == 'Keywords' %}
                 {% for keyword in record.keywords | sort %}
-                    {# Use the absolute path /catalog/ to ensure links always point to the main search page #}
-                    <a href="/catalog/?q={{ keyword | urlencode }}">{{ keyword }}</a>{% if not loop.last %}, {% endif %}
+                    {% set query = request.args.copy() %}
+                    {% set _ = query.update({'facet_keyword': keyword}) %}
+                    <a href="{{ url_for('.index', **query) }}" class="text-underline-hover">
+                        {{ keyword }}
+                    </a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
 
             {% elif prop == 'Data' %}
