@@ -221,7 +221,6 @@ def subset_record_list():
 
     size = 5 #request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
-    print(catalog_record_list)
     client_id = api.client_id.split('.')[0]
 
     return render_template(
@@ -234,7 +233,6 @@ def subset_record_list():
 @bp.route('/proxy-download')
 def proxy_download():
     url = request.args.get('url')
-    print(url)
     r = requests.get(url)
     return Response(r.content, headers={
         'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
@@ -248,7 +246,6 @@ def build_metadata_pdf(data):
     # ------------------------------------------------------------------
     # 1. -------- Extract pieces we need --------------------------------
     # ------------------------------------------------------------------
-    print("DAta",data)
     record = data[0]
     # Find the ISO19115 metadata record for richer details
     iso_record = next((mr for mr in record.get("metadata_records", []) if mr.get("schema_id") == "SAEON.ISO19115"),
