@@ -219,7 +219,6 @@ def subset_record_list():
 @bp.route('/proxy-download')
 def proxy_download():
     url = request.args.get('url')
-    print(url)
     r = requests.get(url)
     return Response(r.content, headers={
         'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
@@ -233,7 +232,6 @@ def build_metadata_pdf(data):
     # ------------------------------------------------------------------
     # 1. -------- Extract pieces we need --------------------------------
     # ------------------------------------------------------------------
-    print("DAta",data)
     record = data[0]
     # Find the ISO19115 metadata record for richer details
     iso_record = next((mr for mr in record.get("metadata_records", []) if mr.get("schema_id") == "SAEON.ISO19115"),
