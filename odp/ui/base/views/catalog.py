@@ -3,7 +3,8 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for,Response,jsonify,send_file
+from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for, Response, \
+    jsonify, send_file
 from io import BytesIO
 from datetime import datetime
 import json
@@ -11,7 +12,7 @@ import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer,Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.units import inch
 
 from odp.config import config
@@ -21,10 +22,6 @@ from odp.ui.base import api, cli
 from odp.ui.base.forms import SearchForm
 
 import requests
-
-
-import requests
-
 
 bp = Blueprint(
     'catalog', __name__,
@@ -47,11 +44,9 @@ def doi_title(doi: str) -> str:
                 schema_id=ODPMetadataSchema.SAEON_DATACITE4,
                 json_pointer='/titles/0/title',
         ):
-            # titles rarely change, but we must expire them in case they ever do;
-            # keep for between 7 and 14 days, so a large set of child record titles doesn't expire all at once
             cli.cache.set(doi, 'title', value=title, expiry=randint(604800, 1209600))
 
-            return title
+        return title
 
     except ODPAPIError:
         pass
@@ -138,12 +133,58 @@ def index():
         size=25,
     )
 
+    try:
+        if (result and
+                isinstance(result, dict) and
+                'facets' in result):
+
+            all_keywords = result['facets']['Keyword']
+            essential_ocean_variables = [
+                item for item in all_keywords
+                if isinstance(item, (list, tuple)) and len(item) > 0 and
+                   isinstance(item[0], str) and item[0].startswith('EOV:')
+            ]
+
+            essential_biological_variables = [
+                item for item in all_keywords
+                if isinstance(item, (list, tuple)) and len(item) > 0 and
+                   isinstance(item[0], str) and item[0].startswith('EBV:')
+            ]
+            sdg_variables = [
+                item for item in all_keywords
+                if isinstance(item, (list, tuple)) and len(item) > 0 and
+                   isinstance(item[0], str) and 'SDG' in item[0]
+            ]
+
+            print(sdg_variables)
+
+            if essential_ocean_variables:
+                result['facets']['Essential Ocean Variables'] = essential_ocean_variables
+            if essential_biological_variables:
+                result['facets']['Essential Biodiversity Variables'] = essential_biological_variables
+            if sdg_variables:
+                result['facets']['SDG Variables'] = sdg_variables
+
+
+    except Exception as e:
+        current_app.logger.warning(f"Could not filter EBV and EOV keywords: {e}")
+
+    print('facet_fields', facet_fields)
+    if 'EOV' in facet_fields:
+        facet_fields['Essential Ocean Variables'] = facet_fields.pop('EOV')
+    if 'EBV' in facet_fields:
+        facet_fields['Essential Biodiversity Variables'] = facet_fields.pop('EBV')
+    if 'SDG' in facet_fields:
+        facet_fields['Essential SDG Variables'] = facet_fields.pop('SDG')
+
+    print('facet_fields', facet_fields)
+
     return render_template(
         'catalog_index.html',
         form=SearchForm(request.args),
         result=result,
         facet_fields=facet_fields,
-        app_name = client_id
+        app_name=client_id
     )
 
 
@@ -162,7 +203,7 @@ def search():
         if not query[facet_field := SearchForm.facet_fieldname(facet_title)]:
             query.pop(facet_field)
 
-    return redirect(url_for( '.index', **query))
+    return redirect(url_for('.index', **query))
 
 
 @bp.route('/<path:id>')
@@ -176,8 +217,9 @@ def view(id):
     return render_template(
         'catalog_record.html',
         record=record,
-        app_name = client_id
+        app_name=client_id
     )
+
 
 @bp.route('/sitemap.xml')
 @cli.view()
@@ -203,12 +245,11 @@ def subset_record_list():
     record_ids_query = '&record_id_or_doi_list='.join(record_ids)
     # Prepend the first parameter
     record_ids_query = f"record_id_or_doi_list={record_ids_query}"
-    # Pass the record IDs as query parameters
 
-    #Add page and size on the query paramenters &page=1&size=50
-    page = 1 #request.args.getlist('page')[0]
+    # Add page and size on the query paramenters &page=1&size=50
+    page = 1  # request.args.getlist('page')[0]
 
-    size = 5 #request.args.getlist('size')[0]
+    size = 5  # request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
     client_id = api.client_id.split('.')[0]
 
@@ -216,8 +257,9 @@ def subset_record_list():
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
         # app_name = current_app.config['SESSION_COOKIE_NAME'].split('.')[0]
-        app_name = client_id
+        app_name=client_id
     )
+
 
 @bp.route('/proxy-download')
 def proxy_download():
@@ -227,6 +269,7 @@ def proxy_download():
         'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
         'Access-Control-Allow-Origin': '*'
     })
+
 
 def build_metadata_pdf(data):
     """Return a BytesIO buffer containing a one‑page PDF that mimics the
@@ -414,6 +457,7 @@ def build_metadata_pdf(data):
     buffer.seek(0)
     return buffer
 
+
 @bp.route('/format/metadata.pdf', methods=['POST'])
 def format_metadata_pdf():
     metadata = request.get_json()
@@ -426,3 +470,32 @@ def format_metadata_pdf():
         return send_file(pdf_buffer, mimetype='application/pdf', as_attachment=True, download_name='metadata.pdf')
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@bp.route('/download-audit', methods=['POST'])
+def download_audit():
+    """
+    Proxy endpoint to receive an audit log from the UI
+    and forward it to the main download audit API.
+    """
+    payload = request.json
+    if not payload:
+        return jsonify({'error': 'No JSON payload received'}), 400
+
+    try:
+
+        api_response = cli.post('/download/audit', payload)
+        api_response.raise_for_status()
+
+        return api_response.json(), api_response.status_code
+
+    except Exception as e:
+
+        try:
+            error_data = e.response.json()
+            status_code = e.response.status_code
+        except:
+            error_data = {'error': str(e)}
+            status_code = 500
+
+        return jsonify(error_data), status_code
