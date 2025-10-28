@@ -201,11 +201,11 @@
                                    onclick="toggleSelectAll(this)">
                             <label class="form-check-label" for="select_all">Select All</label>
                         </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="unselect_all"
-                                   onclick="toggleUnSelectAll(this)">
-                            <label class="form-check-label" for="unselect_all">Unselect All</label>
-                        </div>
+{#                        <div class="form-check">#}
+{#                            <input class="form-check-input" type="checkbox" id="unselect_all"#}
+{#                                   onclick="toggleUnSelectAll(this)">#}
+{#                            <label class="form-check-label" for="unselect_all">Unselect All</label>#}
+{#                        </div>#}
                     </div>
                     <div>
                         {% set download_urls = [] %}
@@ -243,7 +243,6 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <div class="row align-items-center w-100">
-                        <!-- Left side: DOI -->
                         <div class="col-md-8">
                             {% if record.doi %}
                                 <span>DOI: {{ record.doi }}</span>
@@ -252,7 +251,6 @@
                             {% endif %}
                         </div>
                         {% if app_name == 'MIMS' %}
-                            <!-- Right side: Checkbox + Share + Download -->
                             <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
                                 <input type="checkbox" name="check_item" value="{{ record.id }}">
 
@@ -361,6 +359,44 @@
                 </div>
             </div>
         </div>
+
+        <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Please provide some information before downloading.</p>
+                <form id="download-audit-form">
+                    <div class="mb-3">
+                        <label for="download-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="download-name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="download-email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="download-email">
+                    </div>
+                    <div class="mb-3">
+                        <label for="download-reason" class="form-label">Organisation</label>
+                        <input type="organisation" class="form-control" id="organisation">
+
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submit-download-btn">
+                    <span class="submit-download-loader" style="display:none;">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    </span>
+                    Submit and Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 
     </form>
@@ -687,3 +723,4 @@
         </div>
     </div>
 {% endmacro %}
+
