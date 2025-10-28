@@ -1,7 +1,18 @@
-// the user-drawn box on the filter-by-location map
 let box;
 const boxColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--bs-info');
+
+let downloadModalInstance;
+let downloadModalElement;
+let submitDownloadBtn;
+let submitDownloadLoader;
+let downloadAuditForm;
+
+let downloadContext = {
+    recordsToDownload: [],
+    buttonElement: null
+};
+
 
 function _initMap(n, e, s, w) {
     let lat = -33;
@@ -170,6 +181,14 @@ function formatCitation(doi) {
     }
 }
 
+function selectDataciteMetadata(record) {
+    if (!record || !record.metadata_records) {
+        return null;
+    }
+    const metadataRecord = record.metadata_records.find(mr => mr.schema_id === "SAEON.DataCite4");
+    return metadataRecord ? metadataRecord.metadata : null;
+}
+
 function copyCitation() {
     const text = $('#citation').text();
     navigator.clipboard.writeText(text).then(function () {
@@ -186,29 +205,12 @@ function copyCitation() {
 
 function getSelectedIds() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
-    const selectedRecords = [];
-
-    checkboxes.forEach(cb => {
-        // Find the closest parent div that contains the checkbox and the link
-        const container = cb.closest('.col-md-4');
-        if (container) {
-            const downloadLink = container.querySelector('a[href*="/download"]');
-            selectedRecords.push({
-                id: cb.value,
-                link: downloadLink ? downloadLink.href : null
-            });
-        }
-    });
-
-    console.log(selectedRecords)
 
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
 function buildRedirectUrl(selectedIds) {
-//    const baseUrl = 'http://odp.localhost:2022/catalog/subset';
     const currentUrl = new URL(window.location.href);
-    // Replace the path with '/subset'
     const baseUrl = `${currentUrl.origin}/catalog/subset`
     page = 1
     size = 50
@@ -216,23 +218,24 @@ function buildRedirectUrl(selectedIds) {
     return `${baseUrl}?${queryParams}&page=${page}&size=${size}`;
 }
 
-function goToSelectedRecordList(event,records) {
+function goToSelectedRecordList(event, records) {
     event.preventDefault();
     const selectedIds = getSelectedIds(records);
-    // console.log("--Selected IDs:", selectedIds,records);
     const redirectUrl = buildRedirectUrl(selectedIds);
-    // console.log("Redirect URL:", redirectUrl);
     window.location.href = redirectUrl;
 }
 
-function selectedRecordListLink(event,buttonEl) {
+function selectedRecordListLink(event, buttonEl) {
     event.preventDefault();
-
     const selectedIds = getSelectedIds();
-
     const redirectUrl = buildRedirectUrl(selectedIds);
-    console.log("Redirect URL:", redirectUrl);
-    document.getElementById('record-subsetilink').innerText = redirectUrl;
+    // document.getElementById('record-subsetilink').innerText = redirectUrl;
+    const linkOutputElement = document.getElementById('record-subset-link-text') || document.getElementById('record-subsetilink');
+    if (linkOutputElement) {
+        linkOutputElement.innerText = redirectUrl;
+    } else {
+        console.error("Could not find element to display shareable link");
+    }
 }
 
 function updateButtonStates() {
@@ -273,29 +276,127 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-async function downloadSelectedRecords(event, buttonEl, record_id) {
+function downloadSelectedRecords(event, buttonEl, record_id) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+        const records = JSON.parse(buttonEl.getAttribute('data-records'));
+        const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
+
+        if (selectedIds.length === 0) {
+            alert('Please select one or more records to download.');
+            return;
+        }
+
+        const selectedRecords = records.filter(record => selectedIds.includes(record.id));
+
+        if (selectedRecords.length > 0) {
+            // Store context for the modal's submit handler
+            downloadContext.recordsToDownload = selectedRecords;
+            downloadContext.buttonElement = buttonEl; // Store the button
+
+            // Reset form and show modal
+            if (downloadAuditForm) downloadAuditForm.reset();
+            if (downloadModalInstance) downloadModalInstance.show();
+        } else {
+            alert('No matching records found to download.');
+        }
+
+    } catch (err) {
+        console.error("Failed to prepare download:", err);
+        alert("An error occurred. Please try again.");
+    }
+}
+
+async function handleSubmitAndPerformDownload(event) {
     event.preventDefault();
 
-    // Show loader
+    submitDownloadBtn.disabled = true;
+    submitDownloadLoader.style.display = 'inline-block';
+
+    const name = document.getElementById('download-name').value;
+    const email = document.getElementById('download-email').value;
+    const organisation = document.getElementById('organisation').value;
+
+    const doiList = [];
+    const urlList = [];
+    let totalFileSize = 0;
+
+    for (const record of downloadContext.recordsToDownload) {
+        const metadata = selectDataciteMetadata(record);
+
+        if (record.id) {
+            doiList.push(record.id);
+        }
+
+        let individualFileSize = null;
+        if (metadata && metadata.immutableResource && metadata.immutableResource.resourceDownload) {
+            const resource = metadata.immutableResource.resourceDownload;
+
+            if (resource.downloadURL) {
+                urlList.push(resource.downloadURL);
+            }
+            if (resource.resourceSize) {
+                const size = parseInt(resource.resourceSize, 10);
+                if (!isNaN(size)) {
+                    totalFileSize += size;
+                }
+            }
+        }
+    }
+
+    const payload = {
+        download_url: 'client_generated_zip_bundle',
+        file_size: totalFileSize > 0 ? totalFileSize : null,
+        success: true, // Optimistic logging
+
+        name: name || null,
+        email: email || null,
+        organisation: organisation || null,
+
+        meta: {
+            source: 'MIMS-UI',
+            download_type: 'zip_bundle',
+            record_count: downloadContext.recordsToDownload.length,
+            dois: doiList,
+            individual_urls: urlList
+        }
+    };
+
+    fetch('/catalog/download-audit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    }).catch(err => console.error('Audit log failed:', err));
+
+    await _performZipDownload(
+        downloadContext.buttonElement,
+        downloadContext.recordsToDownload
+    );
+
+    submitDownloadBtn.disabled = false;
+    submitDownloadLoader.style.display = 'none';
+    downloadModalInstance.hide();
+
+    downloadContext = {
+        recordsToDownload: [],
+        buttonElement: null
+    };
+}
+
+async function _performZipDownload(buttonEl, selectedRecords) {
     const loader = buttonEl.querySelector('.download-loader');
     if (loader) loader.style.display = 'inline-block';
 
     try {
-        console.log("R.id: ", record_id, ":");
-        const records = JSON.parse(buttonEl.getAttribute('data-records'));
-
-        const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
-        console.log("Selected IDs:", selectedIds);
-
-        const selectedRecords = records.filter(record => selectedIds.includes(record.id));
-        console.log("Selected Records:", selectedRecords);
-
+        console.log("Selected Records for zipping:", selectedRecords);
         const zip = new JSZip();
 
         for (const record of selectedRecords) {
-
             const metadataRecord = record.metadata_records?.find(mr => mr.schema_id === "SAEON.DataCite4");
-
             if (!metadataRecord) continue;
 
             const metadata = metadataRecord.metadata;
@@ -305,14 +406,10 @@ async function downloadSelectedRecords(event, buttonEl, record_id) {
             try {
                 const response = await fetch('/catalog/format/metadata.pdf', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify([record])
                 });
-
                 if (!response.ok) throw new Error("Failed to generate PDF");
-
                 const pdfBlob = await response.blob();
                 folder.file('metadata.pdf', pdfBlob);
             } catch (err) {
@@ -336,7 +433,7 @@ async function downloadSelectedRecords(event, buttonEl, record_id) {
             }
         }
 
-        const content = await zip.generateAsync({ type: 'blob' });
+        const content = await zip.generateAsync({type: 'blob'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(content);
         a.download = 'Records.zip';
@@ -346,71 +443,62 @@ async function downloadSelectedRecords(event, buttonEl, record_id) {
         console.error("Download failed:", err);
         alert("Failed to download records. Please try again.");
     } finally {
-        // Hide loader
         if (loader) loader.style.display = 'none';
     }
 }
 
-
 function createAndDisplayLink(event, button) {
-                // This function acts as a bridge to the existing selectedRecordListLink,
-                // but ensures the output is directed to our new input field.
-                // It temporarily renames the target input to what the old function expects.
-                const targetInput = document.getElementById('record-subset-link');
-                const oldId = 'record-subsetilink';
-                const oldElement = document.getElementById(oldId);
+    event.preventDefault();
+    const targetInput = document.getElementById('record-subset-link');
+    if (!targetInput) {
+        console.error("Missing target input 'record-subset-link'");
+        return;
+    }
 
-                // If an element with the old ID exists, we hide it to avoid confusion.
-                if (oldElement) {
-                    oldElement.style.display = 'none';
-                }
+    const selectedIds = getSelectedIds();
+    if (selectedIds.length === 0) {
+        alert("Please select at least one record.");
+        return;
+    }
+    const redirectUrl = buildRedirectUrl(selectedIds);
+    targetInput.value = redirectUrl;
+}
 
-                // The original selectedRecordListLink function expects a <p> tag with id 'record-subsetilink'
-                // and sets its innerHTML. We'll create a temporary one for it to use.
-                let tempP = document.createElement('p');
-                tempP.id = oldId;
-                tempP.style.display = 'none';
-                document.body.appendChild(tempP);
-
-                // Call the original function
-                selectedRecordListLink(event, button);
-
-                // The original function is likely asynchronous or has a delay.
-                // We'll check for the result and update our input.
+function copyToClipboard(elementSelector) {
+    const element = document.querySelector(elementSelector);
+    if (element && element.value) {
+        navigator.clipboard.writeText(element.value).then(() => {
+            const copyButton = element.nextElementSibling;
+            if (copyButton) {
+                const originalText = copyButton.innerHTML;
+                copyButton.innerHTML = 'Copied!';
                 setTimeout(() => {
-                    if (tempP.innerHTML) {
-                        // Assuming the link is plain text or inside an <a> tag.
-                        const linkElement = tempP.querySelector('a');
-                        if (linkElement) {
-                            targetInput.value = linkElement.href;
-                        } else {
-                            targetInput.value = tempP.innerText;
-                        }
-                    }
-                    document.body.removeChild(tempP); // Clean up the temporary element.
-                }, 500); // Adjust delay if needed
+                    copyButton.innerHTML = originalText;
+                }, 2000);
             }
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+}
 
-            function copyToClipboard(elementSelector) {
-                const element = document.querySelector(elementSelector);
-                if (element && element.value) {
-                    navigator.clipboard.writeText(element.value).then(() => {
-                        // Optional: give user feedback
-                        const originalButtonText = document.querySelector(`${elementSelector} + button`).innerHTML;
-                        document.querySelector(`${elementSelector} + button`).innerHTML = 'Copied!';
-                        setTimeout(() => {
-                            document.querySelector(`${elementSelector} + button`).innerHTML = originalButtonText;
-                        }, 2000);
-                    }).catch(err => {
-                        console.error('Failed to copy text: ', err);
-                    });
-                }
-            }
+document.addEventListener('DOMContentLoaded', function () {
 
-document.addEventListener('DOMContentLoaded', function() {
     updateButtonStates();
     const itemCheckboxes = document.querySelectorAll('input[name="check_item"]');
     itemCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', updateButtonStates);
     });
+
+    downloadModalElement = document.getElementById('download-audit-modal');
+    if (downloadModalElement) {
+        downloadModalInstance = new bootstrap.Modal(downloadModalElement);
+        submitDownloadBtn = document.getElementById('submit-download-btn');
+        submitDownloadLoader = submitDownloadBtn.querySelector('.submit-download-loader');
+        downloadAuditForm = document.getElementById('download-audit-form');
+
+        if (submitDownloadBtn) {
+            submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
+        }
+    }
 });
