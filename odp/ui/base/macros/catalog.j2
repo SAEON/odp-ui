@@ -232,6 +232,22 @@
                     </div>
                 </div>
             </div>
+
+            {% if download_urls %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
+                               name="disclaimer-acknowledgment" required>
+                        <label class="form-check-label" for="disclaimer-acknowledgment">
+                            <small class="text-muted">
+                                <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
+                            </small>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         {% endif %}
         {% for record in records %}
             {% set metadata = record | select_datacite_metadata %}
@@ -406,7 +422,8 @@
 
 {% macro render_metadata(
     record,
-    current_user
+    current_user,
+    facet_values={}
 ) %}
 {% set datacite_metadata = record | select_datacite_metadata %}  {# always present #}
 {% set iso19115_metadata = record | select_iso19115_metadata %}  {# might be null #}
@@ -575,7 +592,68 @@
             {% elif prop == 'Keywords' %}
                 {% for keyword in record.keywords | sort %}
                     {% set query = request.args.copy() %}
-                    {% set _ = query.update({'facet_keyword': keyword}) %}
+                    {# Clear all facet parameters first #}
+                    {% set _ = query.pop('facet_keyword', None) %}
+                    {% set _ = query.pop('facet_project', None) %}
+                    {% set _ = query.pop('facet_location', None) %}
+                    {% set _ = query.pop('facet_instrument', None) %}
+                    {% set _ = query.pop('facet_eov', None) %}
+                    {% set _ = query.pop('facet_ebv', None) %}
+                    {% set _ = query.pop('facet_sdg', None) %}
+
+                    {# Determine which facet this keyword belongs to #}
+                    {% set found_facet = false %}
+
+                    {% if keyword.startswith('EOV:') %}
+                        {# Extract value after "EOV: " and create EOV facet link #}
+                        {% set eov_value = keyword[5:].strip() %}
+                        {% set _ = query.update({'facet_eov': eov_value}) %}
+                        {% set found_facet = true %}
+                    {% elif keyword.startswith('EBV:') %}
+                        {# Extract value after "EBV: " and create EBV facet link #}
+                        {% set ebv_value = keyword[5:].strip() %}
+                        {% set _ = query.update({'facet_ebv': ebv_value}) %}
+                        {% set found_facet = true %}
+                    {% elif keyword.startswith('SDG') %}
+                        {# SDG keywords link to SDG facet with full value #}
+                        {% set _ = query.update({'facet_sdg': keyword}) %}
+                        {% set found_facet = true %}
+                    {% endif %}
+
+                    {# Check structured facets (case-insensitive for better matching) #}
+                    {% if not found_facet and facet_values %}
+                        {% set keyword_lower = keyword.lower() %}
+
+                        {# Check Project facet #}
+                        {% for facet_val in facet_values.get('Project', []) %}
+                            {% if not found_facet and facet_val.lower() == keyword_lower %}
+                                {% set _ = query.update({'facet_project': facet_val}) %}
+                                {% set found_facet = true %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Check Location facet #}
+                        {% for facet_val in facet_values.get('Location', []) %}
+                            {% if not found_facet and facet_val.lower() == keyword_lower %}
+                                {% set _ = query.update({'facet_location': facet_val}) %}
+                                {% set found_facet = true %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {# Check Instrument facet #}
+                        {% for facet_val in facet_values.get('Instrument', []) %}
+                            {% if not found_facet and facet_val.lower() == keyword_lower %}
+                                {% set _ = query.update({'facet_instrument': facet_val}) %}
+                                {% set found_facet = true %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    {# If no structured facet matched, use generic Keyword facet #}
+                    {% if not found_facet %}
+                        {% set _ = query.update({'facet_keyword': keyword}) %}
+                    {% endif %}
+
                     <a href="{{ url_for('.index', **query) }}" class="text-underline-hover">
                         {{ keyword }}
                     </a>{% if not loop.last %}, {% endif %}
