@@ -133,51 +133,26 @@ def index():
         size=25,
     )
 
-    try:
-        if (result and
-                isinstance(result, dict) and
-                'facets' in result):
+    # Rename facet titles for display and hide Keyword facet from sidebar
+    if result and isinstance(result, dict) and 'facets' in result:
+        if 'EOV' in result['facets']:
+            result['facets']['Essential Ocean Variables'] = result['facets'].pop('EOV')
+        if 'EBV' in result['facets']:
+            result['facets']['Essential Biodiversity Variables'] = result['facets'].pop('EBV')
+        if 'SDG' in result['facets']:
+            result['facets']['SDG Variables'] = result['facets'].pop('SDG')
+        # Hide Keyword facet from sidebar (but keep it for filtering via URLs)
+        result['facets'].pop('Keyword', None)
 
-            all_keywords = result['facets']['Keyword']
-            essential_ocean_variables = [
-                item for item in all_keywords
-                if isinstance(item, (list, tuple)) and len(item) > 0 and
-                   isinstance(item[0], str) and item[0].startswith('EOV:')
-            ]
-
-            essential_biological_variables = [
-                item for item in all_keywords
-                if isinstance(item, (list, tuple)) and len(item) > 0 and
-                   isinstance(item[0], str) and item[0].startswith('EBV:')
-            ]
-            sdg_variables = [
-                item for item in all_keywords
-                if isinstance(item, (list, tuple)) and len(item) > 0 and
-                   isinstance(item[0], str) and 'SDG' in item[0]
-            ]
-
-            print(sdg_variables)
-
-            if essential_ocean_variables:
-                result['facets']['Essential Ocean Variables'] = essential_ocean_variables
-            if essential_biological_variables:
-                result['facets']['Essential Biodiversity Variables'] = essential_biological_variables
-            if sdg_variables:
-                result['facets']['SDG Variables'] = sdg_variables
-
-
-    except Exception as e:
-        current_app.logger.warning(f"Could not filter EBV and EOV keywords: {e}")
-
-    print('facet_fields', facet_fields)
+    # Rename facet field names for display and hide Keyword facet from sidebar
     if 'EOV' in facet_fields:
         facet_fields['Essential Ocean Variables'] = facet_fields.pop('EOV')
     if 'EBV' in facet_fields:
         facet_fields['Essential Biodiversity Variables'] = facet_fields.pop('EBV')
     if 'SDG' in facet_fields:
-        facet_fields['Essential SDG Variables'] = facet_fields.pop('SDG')
-
-    print('facet_fields', facet_fields)
+        facet_fields['SDG Variables'] = facet_fields.pop('SDG')
+    # Hide Keyword facet from sidebar display (keep in API for URL-based filtering)
+    facet_fields.pop('Keyword', None)
 
     return render_template(
         'catalog_index.html',
@@ -214,9 +189,32 @@ def view(id):
 
     record = cli.get(f'/catalog/{catalog_id}/records/{id}')
 
+    # Fetch all available facets to help with keyword routing
+    # This allows the template to know which facet each keyword belongs to
+    facet_values = {}
+    try:
+        search_result = cli.get(
+            f'/catalog/{catalog_id}/search',
+            text_query=None,
+            facet_query=None,
+            page=1,
+            size=1,
+        )
+        if search_result and 'facets' in search_result:
+            # Facets come as list of tuples: [(value, count), (value, count), ...]
+            # Extract just the values (first element of each tuple)
+            facet_values = {facet: [val[0] if isinstance(val, (list, tuple)) else val for val in vals]
+                          for facet, vals in search_result['facets'].items()}
+            current_app.logger.info(f"Fetched facet_values: {facet_values}")
+        else:
+            current_app.logger.warning(f"No facets in search_result: {search_result}")
+    except Exception as e:
+        current_app.logger.error(f"Could not fetch facet values: {e}", exc_info=True)
+
     return render_template(
         'catalog_record.html',
         record=record,
+        facet_values=facet_values,
         app_name=client_id
     )
 
