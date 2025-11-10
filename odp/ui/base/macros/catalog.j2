@@ -232,22 +232,6 @@
                     </div>
                 </div>
             </div>
-
-            {% if download_urls %}
-            <div class="card mb-4">
-                <div class="card-body">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
-                               name="disclaimer-acknowledgment" required>
-                        <label class="form-check-label" for="disclaimer-acknowledgment">
-                            <small class="text-muted">
-                                <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                            </small>
-                        </label>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         {% endif %}
         {% for record in records %}
             {% set metadata = record | select_datacite_metadata %}
@@ -397,7 +381,17 @@
                     <div class="mb-3">
                         <label for="download-reason" class="form-label">Organisation</label>
                         <input type="organisation" class="form-control" id="organisation">
-
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
+                                   name="disclaimer-acknowledgment" required>
+                            <label class="form-check-label" for="disclaimer-acknowledgment">
+                                <small class="text-muted">
+                                    <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
+                                </small>
+                            </label>
+                        </div>
                     </div>
                 </form>
             </div>
