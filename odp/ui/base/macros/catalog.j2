@@ -712,25 +712,46 @@
     </button>
 
     <div class="modal fade" id="download-popup" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5">Terms of use</h1>
+                    <h1 class="modal-title fs-5">Download Confirmation</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    {{ config.CATALOG_TERMS_OF_USE }}
+                    <h6 class="mb-3">Terms of use</h6>
+                    <div class="mb-4 p-3 border rounded bg-light">
+                        {{ config.CATALOG_TERMS_OF_USE }}
+                    </div>
+                    <form id="download-popup-form">
+                        <div class="mb-3">
+                            <label for="download-popup-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="download-popup-name">
+                        </div>
+                        <div class="mb-3">
+                            <label for="download-popup-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="download-popup-email">
+                        </div>
+                        <div class="mb-3">
+                            <label for="download-popup-organisation" class="form-label">Organisation</label>
+                            <input type="text" class="form-control" id="download-popup-organisation">
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="accept-terms-of-use-popup">
+                                <label class="form-check-label" for="accept-terms-of-use-popup">
+                                    <small class="text-muted">
+                                        <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
                 </div>
                 <div class="modal-footer">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" id="accept-terms-of-use"
-                               onchange="$('#download-btn').prop('disabled', !this.checked)">
-                        <label class="form-check-label" for="accept-terms-of-use">
-                            I agree to the terms of use
-                        </label>
-                    </div>
-                    <button id="download-btn" type="button" class="btn btn-primary" data-bs-dismiss="modal" disabled
-                            onclick="window.open('{{ download_url }}')">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="download-btn" type="button" class="btn btn-primary" disabled
+                            onclick="handleSingleRecordDownload('{{ download_url }}')">
                         Download
                     </button>
                 </div>

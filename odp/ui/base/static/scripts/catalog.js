@@ -490,6 +490,58 @@ function copyToClipboard(elementSelector) {
     }
 }
 
+function updateDownloadButtonState() {
+    const downloadBtn = document.getElementById('download-btn');
+    const acknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
+
+    if (downloadBtn && acknowledgeCheckbox) {
+        downloadBtn.disabled = !acknowledgeCheckbox.checked;
+    }
+}
+
+function handleSingleRecordDownload(downloadUrl) {
+    const nameInput = document.getElementById('download-popup-name');
+    const emailInput = document.getElementById('download-popup-email');
+    const organisationInput = document.getElementById('download-popup-organisation');
+    const acknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
+
+    // Validate that acknowledgment checkbox is checked
+    if (!acknowledgeCheckbox || !acknowledgeCheckbox.checked) {
+        alert('Please acknowledge the data usage terms before downloading.');
+        if (acknowledgeCheckbox) acknowledgeCheckbox.focus();
+        return;
+    }
+
+    // Log audit data
+    const payload = {
+        download_url: downloadUrl,
+        file_size: null,
+        success: true,
+        name: nameInput ? nameInput.value : null,
+        email: emailInput ? emailInput.value : null,
+        organisation: organisationInput ? organisationInput.value : null,
+        meta: {
+            source: 'MIMS-UI-Detail-Page',
+            download_type: 'single_record'
+        }
+    };
+
+    fetch('/catalog/download-audit', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    }).catch(err => console.error('Audit log failed:', err));
+
+    // Perform the download
+    window.open(downloadUrl);
+
+    // Close the modal
+    const downloadModal = bootstrap.Modal.getInstance(document.getElementById('download-popup'));
+    if (downloadModal) downloadModal.hide();
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     updateButtonStates();
@@ -508,5 +560,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (submitDownloadBtn) {
             submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
         }
+    }
+
+    // Add event listener for the download popup acknowledgment checkbox
+    const downloadPopupAcknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
+    if (downloadPopupAcknowledgeCheckbox) {
+        downloadPopupAcknowledgeCheckbox.addEventListener('change', updateDownloadButtonState);
     }
 });
