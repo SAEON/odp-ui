@@ -281,6 +281,14 @@ function downloadSelectedRecords(event, buttonEl, record_id) {
     event.stopPropagation();
 
     try {
+        // Check if disclaimer checkbox exists and is checked
+        const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
+        if (disclaimerCheckbox && !disclaimerCheckbox.checked) {
+            alert('Please acknowledge the data usage terms before downloading.');
+            disclaimerCheckbox.focus();
+            return;
+        }
+
         const records = JSON.parse(buttonEl.getAttribute('data-records'));
         const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
 
