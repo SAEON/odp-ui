@@ -143,6 +143,7 @@ def index():
             result['facets']['SDG Variables'] = result['facets'].pop('SDG')
         # Hide Keyword facet from sidebar (but keep it for filtering via URLs)
         result['facets'].pop('Keyword', None)
+        result['facets'].pop('SDG Variables', None)
 
     # Rename facet field names for display and hide Keyword facet from sidebar
     if 'EOV' in facet_fields:
@@ -153,6 +154,7 @@ def index():
         facet_fields['SDG Variables'] = facet_fields.pop('SDG')
     # Hide Keyword facet from sidebar display (keep in API for URL-based filtering)
     facet_fields.pop('Keyword', None)
+    facet_fields.pop('SDG Variables', None)
 
     return render_template(
         'catalog_index.html',
