@@ -189,50 +189,26 @@
     </div>
 {% endmacro %}
 
-{% macro result_list(records,app_name=None) %}
+{% macro result_list(records) %}
 
     <form id="recordForm">
-        {% if app_name == 'MIMS' %}
-            <div class="card mb-4">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="form-check me-3">
-                            <input class="form-check-input" type="checkbox" id="select_all"
-                                   onclick="toggleSelectAll(this)">
-                            <label class="form-check-label" for="select_all">Select All</label>
-                        </div>
-{#                        <div class="form-check">#}
-{#                            <input class="form-check-input" type="checkbox" id="unselect_all"#}
-{#                                   onclick="toggleUnSelectAll(this)">#}
-{#                            <label class="form-check-label" for="unselect_all">Unselect All</label>#}
-{#                        </div>#}
+        <div class="card mb-4">
+            <div class="card-header d-flex">
+                <div class="row">
+                    <div class="col-auto">
+
+                        <input type="checkbox" id="select_all" onclick="toggleSelectAll(this)"> Select All
                     </div>
-                    <div>
-                        {% set download_urls = [] %}
-                        {% for record in records %}
-                            {% set metadata = record | select_datacite_metadata %}
-                            {% if metadata and metadata.immutableResource and metadata.immutableResource.resourceDownload %}
-                                {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
-                            {% endif %}
-                        {% endfor %}
-                        <button id="download-selected-btn"
-                                onclick="downloadSelectedRecords(event, this,'')"
-                                class="btn btn-outline-primary btn-action"
-                                data-download-urls='{{ download_urls | tojson | safe }}'
-                                data-records='{{ records | tojson | safe }}'
-                        >
-                            <img src="{{ url_for('static', filename='images/download-icon.png') }}"
-                                 height="15px" class="me-1">
-                            <span class="download-loader" style="display:none;">
-                                <span class="spinner-border spinner-border-sm text-primary" role="status"
-                                      aria-hidden="true"></span>
-                            </span>
-                            Download Selected
-                        </button>
+                    <div class="col-auto">
+                        <input type="checkbox" id="unselect_all" onclick="toggleUnSelectAll(this)"> Unselect All
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-outline-info" onclick="console.log('Download All!')"> Download All </button>
                     </div>
                 </div>
             </div>
-        {% endif %}
+
+        </div>
         {% for record in records %}
             {% set metadata = record | select_datacite_metadata %}
             {% set abstract = metadata.descriptions | selectattr('descriptionType', '==', 'Abstract') | map(attribute='description') | first %}
@@ -243,6 +219,7 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <div class="row align-items-center w-100">
+                        <!-- Left side: DOI -->
                         <div class="col-md-8">
                             {% if record.doi %}
                                 <span>DOI: {{ record.doi }}</span>
@@ -250,52 +227,41 @@
                                 <span>(No DOI)</span>
                             {% endif %}
                         </div>
-                        {% if app_name == 'MIMS' %}
-                            <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
-                                <input type="checkbox" name="check_item" value="{{ record.id }}">
 
-                                <button type="button"
-                                        class="btn btn-link p-0"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#record-subset-popup"
-                                        onclick="handleShareClick(this)"
-                                >
-                                    <i class="bi bi-share"></i> <img
-                                        src="{{ url_for('static', filename='images/share-icon.png') }}"
-                                        height="15px"></a>
+                        <!-- Right side: Checkbox + Share + Download -->
+                        <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
+                            <input type="checkbox" name="check_item" value="{{ record.id }}">
 
-                                </button>
+                            <button type="button"
+                                    class="btn btn-link p-0"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#record-subset-popup"
+                                    onclick="handleShareClick(this)"
+                            >
+                                <i class="bi bi-share"></i>  <img src="{{ url_for('static', filename='images/share-icon.png') }}" height="15px"></a>
 
+                            </button>
 
-                                {% if immutable_resource
+                            {% if immutable_resource
                               and immutable_resource.resourceDownload
                               and immutable_resource.resourceDownload.downloadURL
                               and immutable_resource.resourceDownload.downloadURL.startswith('https://repository.ocean.gov.za') %}
 
-                                    {% set download_url = immutable_resource.resourceDownload.downloadURL %}
-                                    <button
-                                            class="btn btn-link p-0 no-outline"
-                                    >
-                                        <a onclick="downloadSelectedRecords(event,this,'{{ record.id }}')"
-                                           data-records='{{ records | tojson | safe }}'>
-                                            <img src="{{ url_for('static', filename='images/download-icon.png') }}"
-                                                 height="15px">
-                                            <span class="download-loader" style="display:none;">
-        <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
-    </span>
-                                        </a>
+                                {% set download_url = immutable_resource.resourceDownload.downloadURL %}
+{#                                <a href="{{ download_url }}/download" target="_blank"#}
+{#                                   class="">#}
+{#                                     <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px"></a>#}
+                                <a onclick="downloadSelectedRecords(event,this,'{{ record.id }}')"
+                                        data-records='{{ records | tojson | safe }}'
+                                   class="">
+                                     <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px"></a>
+
+                            {% else %}
+                                <span class="text-muted small">No Download</span>
+                            {% endif %}
 
 
-                                    </button>
-
-
-                                {% else %}
-                                    <span class="text-muted small">No Download</span>
-                                {% endif %}
-
-
-                            </div>
-                        {% endif %}
+                        </div>
                     </div>
                 </div>
 
@@ -315,6 +281,15 @@
         {% endfor %}
 
 
+
+        {% if 'subset' is not in request.url %}
+
+            <button type="button" class="btn btn-outline-info btn-action" data-bs-toggle="modal"
+                    data-bs-target="#record-subset-popup">
+                Select Records Subset
+            </button>
+
+        {% endif %}
         <div class="modal fade" id="record-subset-popup" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered modal-xl">
                 <div class="modal-content">
@@ -325,88 +300,58 @@
 
                     <div class="modal-body">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="d-grid gap-2">
-                                    <button onclick="goToSelectedRecordList(event)"
-                                            class="btn btn-outline-primary btn-action">
-                                        Go to record subset
-                                    </button>
-                                    <button onclick="createAndDisplayLink(event, this)"
-                                            class="btn btn-outline-primary btn-action"
-                                            data-records='{{ records | tojson | safe }}'>
-                                        Create shareable link
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <label for="record-subset-link" class="form-label">Shareable Link</label>
-                                <div class="input-group">
-                                    <input type="text" id="record-subset-link" class="form-control" readonly
-                                           placeholder="Click 'Create shareable link' to generate a link">
-                                    <button class="btn btn-outline-secondary" type="button"
-                                            onclick="copyToClipboard('#record-subset-link')">Copy
-                                    </button>
-                                </div>
+                            <div class="col-auto">
+
+                                <button onclick="goToSelectedRecordList(event)"
+                                        class="btn btn-outline-info"
+                                       >
+                                    Got to
+                                    record subset
+                                </button>
+                                <button onclick="selectedRecordListLink(event,this)"
+                                        class="btn btn-outline-info"
+                                         data-records='{{ records | tojson | safe }}'
+                                >
+                                Share record subset link
+                                </button>
+
+                                {% set download_urls = [] %}
+                                {% for record in records %}
+                                    {% set metadata = record | select_datacite_metadata %}
+                                    {% if metadata and metadata.immutableResource and metadata.immutableResource.resourceDownload %}
+                                        {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
+                                    {% endif %}
+                                {% endfor %}
+                                <button onclick="downloadSelectedRecords(event, this,'')"
+                                        class="btn btn-outline-info"
+                                        data-download-urls='{{ download_urls | tojson | safe }}'
+                                        data-records='{{ records | tojson | safe }}'
+                                >
+                                     <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px">
+                                    Download Selected Records
+
+                                </button>
+
                             </div>
                         </div>
+                        <div class="row">
+                            <div class="col-auto">
+                                <p id='record-subsetilink'></p>
+
+                            </div>
+                        </div>
+
                     </div>
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             Close
                         </button>
+
                     </div>
                 </div>
             </div>
         </div>
-
-        <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Please provide some information before downloading.</p>
-                <form id="download-audit-form">
-                    <div class="mb-3">
-                        <label for="download-name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="download-name">
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="download-email">
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-reason" class="form-label">Organisation</label>
-                        <input type="organisation" class="form-control" id="organisation">
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
-                                   name="disclaimer-acknowledgment" required>
-                            <label class="form-check-label" for="disclaimer-acknowledgment">
-                                <small class="text-muted">
-                                    <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                                </small>
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submit-download-btn">
-                    <span class="submit-download-loader" style="display:none;">
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    </span>
-                    Submit and Download
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 
     </form>
@@ -416,8 +361,7 @@
 
 {% macro render_metadata(
     record,
-    current_user,
-    facet_values={}
+    current_user
 ) %}
 {% set datacite_metadata = record | select_datacite_metadata %}  {# always present #}
 {% set iso19115_metadata = record | select_iso19115_metadata %}  {# might be null #}
@@ -495,7 +439,7 @@
         {% if datacite_metadata.relatedIdentifiers %}
             <ul class="list-unstyled">
                 {% for related_id in datacite_metadata.relatedIdentifiers | selectattr('relationType', '!=', 'HasPart') | sort(attribute='relationType,relatedIdentifier') %}
-                    {% set relation_type = related_id.relationType | lower %}
+                    {% set relation_type = related_id.relationType | uncamel | lower %}
                     <li>
                         This digital object <b>{{ relation_type }}</b>
                         {{ _render_related_identifier(related_id) }}
@@ -537,7 +481,7 @@
 
             {% elif prop == 'Contributors' %}
                 {% for contributor in datacite_metadata.contributors %}
-                    <p>{{ contributor.contributorType }}: {{ contributor.name }}<br/>
+                    <p>{{ contributor.contributorType | datacite_enum }}: {{ contributor.name }}<br/>
                         <small>{{ contributor.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
                     </p>
                 {% endfor %}
@@ -584,74 +528,7 @@
                 {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
 
             {% elif prop == 'Keywords' %}
-                {% for keyword in record.keywords | sort %}
-                    {% set query = request.args.copy() %}
-                    {# Clear all facet parameters first #}
-                    {% set _ = query.pop('facet_keyword', None) %}
-                    {% set _ = query.pop('facet_project', None) %}
-                    {% set _ = query.pop('facet_location', None) %}
-                    {% set _ = query.pop('facet_instrument', None) %}
-                    {% set _ = query.pop('facet_eov', None) %}
-                    {% set _ = query.pop('facet_ebv', None) %}
-                    {% set _ = query.pop('facet_sdg', None) %}
-
-                    {# Determine which facet this keyword belongs to #}
-                    {% set found_facet = false %}
-
-                    {% if keyword.startswith('EOV:') %}
-                        {# Extract value after "EOV: " and create EOV facet link #}
-                        {% set eov_value = keyword[5:].strip() %}
-                        {% set _ = query.update({'facet_eov': eov_value}) %}
-                        {% set found_facet = true %}
-                    {% elif keyword.startswith('EBV:') %}
-                        {# Extract value after "EBV: " and create EBV facet link #}
-                        {% set ebv_value = keyword[5:].strip() %}
-                        {% set _ = query.update({'facet_ebv': ebv_value}) %}
-                        {% set found_facet = true %}
-                    {% elif keyword.startswith('SDG') %}
-                        {# SDG keywords link to SDG facet with full value #}
-                        {% set _ = query.update({'facet_sdg': keyword}) %}
-                        {% set found_facet = true %}
-                    {% endif %}
-
-                    {# Check structured facets (case-insensitive for better matching) #}
-                    {% if not found_facet and facet_values %}
-                        {% set keyword_lower = keyword.lower() %}
-
-                        {# Check Project facet #}
-                        {% for facet_val in facet_values.get('Project', []) %}
-                            {% if not found_facet and facet_val.lower() == keyword_lower %}
-                                {% set _ = query.update({'facet_project': facet_val}) %}
-                                {% set found_facet = true %}
-                            {% endif %}
-                        {% endfor %}
-
-                        {# Check Location facet #}
-                        {% for facet_val in facet_values.get('Location', []) %}
-                            {% if not found_facet and facet_val.lower() == keyword_lower %}
-                                {% set _ = query.update({'facet_location': facet_val}) %}
-                                {% set found_facet = true %}
-                            {% endif %}
-                        {% endfor %}
-
-                        {# Check Instrument facet #}
-                        {% for facet_val in facet_values.get('Instrument', []) %}
-                            {% if not found_facet and facet_val.lower() == keyword_lower %}
-                                {% set _ = query.update({'facet_instrument': facet_val}) %}
-                                {% set found_facet = true %}
-                            {% endif %}
-                        {% endfor %}
-                    {% endif %}
-
-                    {# If no structured facet matched, use generic Keyword facet #}
-                    {% if not found_facet %}
-                        {% set _ = query.update({'facet_keyword': keyword}) %}
-                    {% endif %}
-
-                    <a href="{{ url_for('.index', **query) }}" class="text-underline-hover">
-                        {{ keyword }}
-                    </a>{% if not loop.last %}, {% endif %}
-                {% endfor %}
+                {{ record.keywords | sort | join(', ') }}
 
             {% elif prop == 'Data' %}
                 <div class="d-flex justify-content-between">
@@ -673,7 +550,9 @@
             {% elif prop == 'Related resources' %}
                 {{ related_ids }}
 
-            {% endif %}
+            {% elif prop == 'SDGs' %}
+                    {{ sdg }}
+                {% endif %}
         {% endcall %}
     </div>
 </div>
@@ -712,51 +591,47 @@
     </button>
 
     <div class="modal fade" id="download-popup" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5">Download Confirmation</h1>
+                    <h1 class="modal-title fs-5">Download Data</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-{#                    <h6 class="mb-3">Terms of use</h6>#}
-{#                    <div class="mb-4 p-3 border rounded bg-light">#}
-{#                        {{ config.CATALOG_TERMS_OF_USE }}#}
-{#                    </div>#}
-                    Please provide some information before downloading.
-                    
-                    <form id="download-popup-form">
+                <form id="download-audit-form">
+                    <div class="modal-body">
                         <div class="mb-3">
-                            <label for="download-popup-name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="download-popup-name">
+                            <label for="da-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="da-name" required>
                         </div>
                         <div class="mb-3">
-                            <label for="download-popup-email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="download-popup-email">
+                            <label for="da-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="da-email" required>
                         </div>
                         <div class="mb-3">
-                            <label for="download-popup-organisation" class="form-label">Organisation</label>
-                            <input type="text" class="form-control" id="download-popup-organisation">
+                            <label for="da-reason" class="form-label">Organisation</label>
+                            <input type="text" class="form-control" id="da-reason" required>
                         </div>
                         <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="accept-terms-of-use-popup">
-                                <label class="form-check-label" for="accept-terms-of-use-popup">
-                                    <small class="text-muted">
-                                        <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                                    </small>
-                                </label>
+                            <div class="alert alert-info" role="alert">
+                                {{ config.CATALOG_TERMS_OF_USE }}
                             </div>
                         </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button id="download-btn" type="button" class="btn btn-primary" disabled
-                            onclick="handleSingleRecordDownload('{{ download_url }}')">
-                        Download
-                    </button>
-                </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="da-accept-terms" required>
+                            <label class="form-check-label" for="da-accept-terms">
+                                I acknowledge the data usage terms
+                            </label>
+                        </div>
+                        <div id="da-feedback" style="display:none;" class="alert alert-danger mt-3"></div>
+                    </div>
+                    <input type="hidden" id="da-download-url" value="">
+                    <input type="hidden" id="da-record-id" value="">
+                    <input type="hidden" id="da-doi" value="">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button id="da-submit" type="submit" class="btn btn-primary" disabled>Download</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -818,4 +693,3 @@
         </div>
     </div>
 {% endmacro %}
-
