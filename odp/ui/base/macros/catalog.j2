@@ -594,25 +594,44 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5">Terms of use</h1>
+                    <h1 class="modal-title fs-5">Download Data</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    {{ config.CATALOG_TERMS_OF_USE }}
-                </div>
-                <div class="modal-footer">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" id="accept-terms-of-use"
-                               onchange="$('#download-btn').prop('disabled', !this.checked)">
-                        <label class="form-check-label" for="accept-terms-of-use">
-                            I agree to the terms of use
-                        </label>
+                <form id="download-audit-form">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="da-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="da-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="da-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="da-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="da-reason" class="form-label">Organisation</label>
+                            <input type="text" class="form-control" id="da-reason" required>
+                        </div>
+                        <div class="mb-3">
+                            <div class="alert alert-info" role="alert">
+                                {{ config.CATALOG_TERMS_OF_USE }}
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="" id="da-accept-terms" required>
+                            <label class="form-check-label" for="da-accept-terms">
+                                I acknowledge the data usage terms
+                            </label>
+                        </div>
+                        <div id="da-feedback" style="display:none;" class="alert alert-danger mt-3"></div>
                     </div>
-                    <button id="download-btn" type="button" class="btn btn-primary" data-bs-dismiss="modal" disabled
-                            onclick="window.open('{{ download_url }}')">
-                        Download
-                    </button>
-                </div>
+                    <input type="hidden" id="da-download-url" value="">
+                    <input type="hidden" id="da-record-id" value="">
+                    <input type="hidden" id="da-doi" value="">
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button id="da-submit" type="submit" class="btn btn-primary" disabled>Download</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>

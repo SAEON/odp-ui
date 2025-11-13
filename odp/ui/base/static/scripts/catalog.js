@@ -3,6 +3,12 @@ let box;
 const boxColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--bs-info');
 
+// Validate email format
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
 function _initMap(n, e, s, w) {
     let lat = -33;
     let lon = 23;
@@ -347,23 +353,66 @@ function attachDownloadAuditHandlers() {
   if (form.__download_handlers_attached) return;
   form.__download_handlers_attached = true;
 
-  const accept = document.getElementById('da-accept-terms');
+  const nameInput = document.getElementById('da-name');
+  const emailInput = document.getElementById('da-email');
+  const organisationInput = document.getElementById('da-reason');
+  const acceptCheckbox = document.getElementById('da-accept-terms');
   const submit = document.getElementById('da-submit');
-  accept.addEventListener('change', function () {
-    submit.disabled = !this.checked;
-  });
+
+  // Update submit button state based on all validations
+  function updateSubmitState() {
+    const hasName = nameInput.value.trim() !== '';
+    const hasEmail = emailInput.value.trim() !== '';
+    const hasOrganisation = organisationInput.value.trim() !== '';
+    const acceptsTerms = acceptCheckbox.checked;
+    submit.disabled = !(hasName && hasEmail && hasOrganisation && acceptsTerms);
+  }
+
+  // Add event listeners for real-time validation feedback
+  nameInput.addEventListener('change', updateSubmitState);
+  emailInput.addEventListener('change', updateSubmitState);
+  organisationInput.addEventListener('change', updateSubmitState);
+  acceptCheckbox.addEventListener('change', updateSubmitState);
 
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
+
+    // Validate all fields before submission
+    if (!nameInput.value.trim()) {
+      alert('Please enter your name.');
+      nameInput.focus();
+      return;
+    }
+    if (!emailInput.value.trim()) {
+      alert('Please enter your email address.');
+      emailInput.focus();
+      return;
+    }
+    if (!isValidEmail(emailInput.value)) {
+      alert('Please enter a valid email address.');
+      emailInput.focus();
+      return;
+    }
+    if (!organisationInput.value.trim()) {
+      alert('Please enter your organisation.');
+      organisationInput.focus();
+      return;
+    }
+    if (!acceptCheckbox.checked) {
+      alert('Please acknowledge the data usage terms before downloading.');
+      acceptCheckbox.focus();
+      return;
+    }
+
     submit.disabled = true;
 
     const payload = {
       record_id: document.getElementById('da-record-id').value || null,
       doi: document.getElementById('da-doi').value || null,
       download_url: document.getElementById('da-download-url').value || null,
-      name: document.getElementById('da-name').value || null,
-      email: document.getElementById('da-email').value || null,
-      reason: document.getElementById('da-reason').value || null,
+      name: nameInput.value,
+      email: emailInput.value,
+      reason: organisationInput.value,
       success: true,
       meta: {}
     };
@@ -381,7 +430,7 @@ function attachDownloadAuditHandlers() {
       return resp.json();
     }).then(function (json) {
       // hide modal then open download link
-      const modalEl = document.getElementById('download-audit-modal');
+      const modalEl = document.getElementById('download-popup');
       bootstrap.Modal.getInstance(modalEl).hide();
       if (payload.download_url) {
         window.open(payload.download_url, '_blank');
