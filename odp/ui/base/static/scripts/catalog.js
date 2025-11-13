@@ -1,18 +1,7 @@
+// the user-drawn box on the filter-by-location map
 let box;
 const boxColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--bs-info');
-
-let downloadModalInstance;
-let downloadModalElement;
-let submitDownloadBtn;
-let submitDownloadLoader;
-let downloadAuditForm;
-
-let downloadContext = {
-    recordsToDownload: [],
-    buttonElement: null
-};
-
 
 function _initMap(n, e, s, w) {
     let lat = -33;
@@ -181,14 +170,6 @@ function formatCitation(doi) {
     }
 }
 
-function selectDataciteMetadata(record) {
-    if (!record || !record.metadata_records) {
-        return null;
-    }
-    const metadataRecord = record.metadata_records.find(mr => mr.schema_id === "SAEON.DataCite4");
-    return metadataRecord ? metadataRecord.metadata : null;
-}
-
 function copyCitation() {
     const text = $('#citation').text();
     navigator.clipboard.writeText(text).then(function () {
@@ -205,12 +186,30 @@ function copyCitation() {
 
 function getSelectedIds() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    // const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    const selectedRecords = [];
+
+    checkboxes.forEach(cb => {
+        // Find the closest parent div that contains the checkbox and the link
+        const container = cb.closest('.col-md-4');
+        if (container) {
+            const downloadLink = container.querySelector('a[href*="/download"]');
+            selectedRecords.push({
+                id: cb.value,
+                link: downloadLink ? downloadLink.href : null
+            });
+        }
+    });
+
+    console.log(selectedRecords)
 
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
 function buildRedirectUrl(selectedIds) {
+//    const baseUrl = 'http://odp.localhost:2022/catalog/subset';
     const currentUrl = new URL(window.location.href);
+    // Replace the path with '/subset'
     const baseUrl = `${currentUrl.origin}/catalog/subset`
     page = 1
     size = 50
@@ -218,37 +217,24 @@ function buildRedirectUrl(selectedIds) {
     return `${baseUrl}?${queryParams}&page=${page}&size=${size}`;
 }
 
-function goToSelectedRecordList(event, records) {
+function goToSelectedRecordList(event,records) {
     event.preventDefault();
     const selectedIds = getSelectedIds(records);
+    // console.log("--Selected IDs:", selectedIds,records);
     const redirectUrl = buildRedirectUrl(selectedIds);
+    // console.log("Redirect URL:", redirectUrl);
     window.location.href = redirectUrl;
 }
 
-function selectedRecordListLink(event, buttonEl) {
+function selectedRecordListLink(event,buttonEl) {
     event.preventDefault();
+
     const selectedIds = getSelectedIds();
+    console.log("Selected  list IDs :--", selectedIds,'------------',);
+
     const redirectUrl = buildRedirectUrl(selectedIds);
-    // document.getElementById('record-subsetilink').innerText = redirectUrl;
-    const linkOutputElement = document.getElementById('record-subset-link-text') || document.getElementById('record-subsetilink');
-    if (linkOutputElement) {
-        linkOutputElement.innerText = redirectUrl;
-    } else {
-        console.error("Could not find element to display shareable link");
-    }
-}
-
-function updateButtonStates() {
-    const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
-    const unselectAllCheckbox = document.getElementById('unselect_all');
-    const downloadSelectedBtn = document.getElementById('download-selected-btn');
-
-    if (unselectAllCheckbox) {
-        unselectAllCheckbox.disabled = checkboxes.length === 0;
-    }
-    if (downloadSelectedBtn) {
-        downloadSelectedBtn.disabled = checkboxes.length === 0;
-    }
+    console.log("Redirect URL:", redirectUrl);
+    document.getElementById('record-subsetilink').innerText = redirectUrl;
 }
 
 function toggleSelectAll(selectAllCheckbox) {
@@ -256,7 +242,6 @@ function toggleSelectAll(selectAllCheckbox) {
     checkboxes.forEach(checkbox => {
         checkbox.checked = selectAllCheckbox.checked;
     });
-    updateButtonStates();
 }
 
 function toggleUnSelectAll() {
@@ -264,11 +249,6 @@ function toggleUnSelectAll() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
-    const selectAllCheckbox = document.getElementById('select_all');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.checked = false;
-    }
-    updateButtonStates();
 }
 
 function handleShareClick(buttonElement) {
@@ -276,295 +256,157 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-function downloadSelectedRecords(event, buttonEl, record_id) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    try {
-        const records = JSON.parse(buttonEl.getAttribute('data-records'));
-        const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
-
-        if (selectedIds.length === 0) {
-            alert('Please select one or more records to download.');
-            return;
-        }
-
-        const selectedRecords = records.filter(record => selectedIds.includes(record.id));
-
-        if (selectedRecords.length > 0) {
-            // Store context for the modal's submit handler
-            downloadContext.recordsToDownload = selectedRecords;
-            downloadContext.buttonElement = buttonEl; // Store the button
-
-            // Reset form and show modal
-            if (downloadAuditForm) downloadAuditForm.reset();
-            if (downloadModalInstance) downloadModalInstance.show();
-        } else {
-            alert('No matching records found to download.');
-        }
-
-    } catch (err) {
-        console.error("Failed to prepare download:", err);
-        alert("An error occurred. Please try again.");
-    }
-}
-
-async function handleSubmitAndPerformDownload(event) {
+async function downloadSelectedRecords(event, buttonEl,record_id) {
     event.preventDefault();
 
-    // Check if disclaimer checkbox is checked
-    const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
-    if (!disclaimerCheckbox || !disclaimerCheckbox.checked) {
-        alert('Please acknowledge the data usage terms before downloading.');
-        if (disclaimerCheckbox) disclaimerCheckbox.focus();
-        return;
-    }
+    console.log("R.id: ",record_id,":")
+    const records = JSON.parse(buttonEl.getAttribute('data-records'));
 
-    submitDownloadBtn.disabled = true;
-    submitDownloadLoader.style.display = 'inline-block';
+    // if record_id is not an empty string, use it; otherwise call getSelectedIds()
+    const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
 
-    const name = document.getElementById('download-name').value;
-    const email = document.getElementById('download-email').value;
-    const organisation = document.getElementById('organisation').value;
+    // const selectedIds = getSelectedIds();
+    console.log("Selected IDs:", selectedIds);
 
-    const doiList = [];
-    const urlList = [];
-    let totalFileSize = 0;
+    // Filter records based on selectedIds
+    const selectedRecords = records.filter(record => selectedIds.includes(record.id));
+    console.log("Selected Records:", selectedRecords);
 
-    for (const record of downloadContext.recordsToDownload) {
-        const metadata = selectDataciteMetadata(record);
+    const zip = new JSZip();
 
-        if (record.id) {
-            doiList.push(record.id);
+    for (const record of selectedRecords) {
+        const metadataRecord = record.metadata_records?.[0];
+        if (!metadataRecord) continue;
+
+        const metadata = metadataRecord.metadata;
+        const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
+        const folder = zip.folder(title);
+
+        // Add metadata as PDF via backend
+        try {
+            const response = await fetch('/catalog/format/metadata.pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify([record])  // Send single record in array
+            });
+
+            if (!response.ok) throw new Error("Failed to generate PDF");
+
+            const pdfBlob = await response.blob();
+            folder.file('metadata.pdf', pdfBlob);
+        } catch (err) {
+            console.error("Error generating metadata PDF:", err);
+            // fallback to plain text metadata
+            folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
         }
 
-        let individualFileSize = null;
-        if (metadata && metadata.immutableResource && metadata.immutableResource.resourceDownload) {
-            const resource = metadata.immutableResource.resourceDownload;
+        // Add downloadable file if available
+        const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
+        const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
 
-            if (resource.downloadURL) {
-                urlList.push(resource.downloadURL);
-            }
-            if (resource.resourceSize) {
-                const size = parseInt(resource.resourceSize, 10);
-                if (!isNaN(size)) {
-                    totalFileSize += size;
-                }
-            }
-        }
-    }
-
-    const payload = {
-        download_url: 'client_generated_zip_bundle',
-        file_size: totalFileSize > 0 ? totalFileSize : null,
-        success: true, // Optimistic logging
-
-        name: name || null,
-        email: email || null,
-        organisation: organisation || null,
-
-        meta: {
-            source: 'MIMS-UI',
-            download_type: 'zip_bundle',
-            record_count: downloadContext.recordsToDownload.length,
-            dois: doiList,
-            individual_urls: urlList
-        }
-    };
-
-    fetch('/catalog/download-audit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    }).catch(err => console.error('Audit log failed:', err));
-
-    await _performZipDownload(
-        downloadContext.buttonElement,
-        downloadContext.recordsToDownload
-    );
-
-    submitDownloadBtn.disabled = false;
-    submitDownloadLoader.style.display = 'none';
-    downloadModalInstance.hide();
-
-    downloadContext = {
-        recordsToDownload: [],
-        buttonElement: null
-    };
-}
-
-async function _performZipDownload(buttonEl, selectedRecords) {
-    const loader = buttonEl.querySelector('.download-loader');
-    if (loader) loader.style.display = 'inline-block';
-
-    try {
-        console.log("Selected Records for zipping:", selectedRecords);
-        const zip = new JSZip();
-
-        for (const record of selectedRecords) {
-            const metadataRecord = record.metadata_records?.find(mr => mr.schema_id === "SAEON.DataCite4");
-            if (!metadataRecord) continue;
-
-            const metadata = metadataRecord.metadata;
-            const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
-            const folder = zip.folder(title);
-
+        if (downloadURL) {
             try {
-                const response = await fetch('/catalog/format/metadata.pdf', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify([record])
-                });
-                if (!response.ok) throw new Error("Failed to generate PDF");
-                const pdfBlob = await response.blob();
-                folder.file('metadata.pdf', pdfBlob);
+                const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
+                const response = await fetch(proxyUrl);
+                const blob = await response.blob();
+                const extension = blob.type.split('/')[1] || 'bin';
+                folder.file(`${fileName}.${extension}`, blob);
             } catch (err) {
-                console.error("Error generating metadata PDF:", err);
-                folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
-            }
-
-            const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
-            const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
-
-            if (downloadURL) {
-                try {
-                    const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
-                    const response = await fetch(proxyUrl);
-                    const blob = await response.blob();
-                    const extension = blob.type.split('/')[1] || 'bin';
-                    folder.file(`${fileName}.${extension}`, blob);
-                } catch (err) {
-                    console.error("Error downloading via proxy:", downloadURL, err);
-                }
+                console.error("Error downloading via proxy:", downloadURL, err);
             }
         }
+    }
 
-        const content = await zip.generateAsync({type: 'blob'});
+    // Generate and trigger download
+    zip.generateAsync({ type: 'blob' }).then(content => {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(content);
         a.download = 'Records.zip';
         a.click();
-
-    } catch (err) {
-        console.error("Download failed:", err);
-        alert("Failed to download records. Please try again.");
-    } finally {
-        if (loader) loader.style.display = 'none';
-    }
+    });
 }
 
-function createAndDisplayLink(event, button) {
-    event.preventDefault();
-    const targetInput = document.getElementById('record-subset-link');
-    if (!targetInput) {
-        console.error("Missing target input 'record-subset-link'");
-        return;
-    }
-
-    const selectedIds = getSelectedIds();
-    if (selectedIds.length === 0) {
-        alert("Please select at least one record.");
-        return;
-    }
-    const redirectUrl = buildRedirectUrl(selectedIds);
-    targetInput.value = redirectUrl;
+function openDownloadModal(btn) {
+  const downloadUrl = btn.getAttribute('data-download-url');
+  const recordId = btn.getAttribute('data-record-id') || '';
+  const doi = btn.getAttribute('data-doi') || '';
+  // fill form fields...
+  document.getElementById('da-download-url').value = downloadUrl;
+  document.getElementById('da-record-id').value = recordId;
+  document.getElementById('da-doi').value = doi;
+  // reset optional fields...
+  // show modal...
+  attachDownloadAuditHandlers();
 }
 
-function copyToClipboard(elementSelector) {
-    const element = document.querySelector(elementSelector);
-    if (element && element.value) {
-        navigator.clipboard.writeText(element.value).then(() => {
-            const copyButton = element.nextElementSibling;
-            if (copyButton) {
-                const originalText = copyButton.innerHTML;
-                copyButton.innerHTML = 'Copied!';
-                setTimeout(() => {
-                    copyButton.innerHTML = originalText;
-                }, 2000);
-            }
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
-        });
-    }
-}
+function attachDownloadAuditHandlers() {
+  const form = document.getElementById('download-audit-form');
+  if (!form) return;
+  if (form.__download_handlers_attached) return;
+  form.__download_handlers_attached = true;
 
-function updateDownloadButtonState() {
-    const downloadBtn = document.getElementById('download-btn');
-    const acknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
+  const accept = document.getElementById('da-accept-terms');
+  const submit = document.getElementById('da-submit');
+  accept.addEventListener('change', function () {
+    submit.disabled = !this.checked;
+  });
 
-    if (downloadBtn && acknowledgeCheckbox) {
-        downloadBtn.disabled = !acknowledgeCheckbox.checked;
-    }
-}
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    submit.disabled = true;
 
-function handleSingleRecordDownload(downloadUrl) {
-    const nameInput = document.getElementById('download-popup-name');
-    const emailInput = document.getElementById('download-popup-email');
-    const organisationInput = document.getElementById('download-popup-organisation');
-    const acknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
-
-    // Validate that acknowledgment checkbox is checked
-    if (!acknowledgeCheckbox || !acknowledgeCheckbox.checked) {
-        alert('Please acknowledge the data usage terms before downloading.');
-        if (acknowledgeCheckbox) acknowledgeCheckbox.focus();
-        return;
-    }
-
-    // Log audit data
     const payload = {
-        download_url: downloadUrl,
-        file_size: null,
-        success: true,
-        name: nameInput ? nameInput.value : null,
-        email: emailInput ? emailInput.value : null,
-        organisation: organisationInput ? organisationInput.value : null,
-        meta: {
-            source: 'MIMS-UI-Detail-Page',
-            download_type: 'single_record'
-        }
+      record_id: document.getElementById('da-record-id').value || null,
+      doi: document.getElementById('da-doi').value || null,
+      download_url: document.getElementById('da-download-url').value || null,
+      name: document.getElementById('da-name').value || null,
+      email: document.getElementById('da-email').value || null,
+      reason: document.getElementById('da-reason').value || null,
+      success: true,
+      meta: {}
     };
 
-    fetch('/catalog/download-audit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    }).catch(err => console.error('Audit log failed:', err));
-
-    // Perform the download
-    window.open(downloadUrl);
-
-    // Close the modal
-    const downloadModal = bootstrap.Modal.getInstance(document.getElementById('download-popup'));
-    if (downloadModal) downloadModal.hide();
+    fetch('/download/audit', {   // FastAPI route prefix: /download/audit
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+        // add CSRF header if needed
+      },
+      body: JSON.stringify(payload),
+      credentials: 'same-origin'
+    }).then(function (resp) {
+      if (!resp.ok) return resp.json().then(j => { throw new Error(j.detail || 'Failed to record download');});
+      return resp.json();
+    }).then(function (json) {
+      // hide modal then open download link
+      const modalEl = document.getElementById('download-audit-modal');
+      bootstrap.Modal.getInstance(modalEl).hide();
+      if (payload.download_url) {
+        window.open(payload.download_url, '_blank');
+      } else {
+        console.warn('No download_url provided');
+      }
+    }).catch(function (err) {
+      submit.disabled = false;
+      const feedback = document.getElementById('da-feedback');
+      feedback.style.display = 'block';
+      feedback.textContent = err.message || 'Failed to record download';
+    });
+  });
 }
 
-document.addEventListener('DOMContentLoaded', function () {
 
-    updateButtonStates();
-    const itemCheckboxes = document.querySelectorAll('input[name="check_item"]');
-    itemCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateButtonStates);
-    });
 
-    downloadModalElement = document.getElementById('download-audit-modal');
-    if (downloadModalElement) {
-        downloadModalInstance = new bootstrap.Modal(downloadModalElement);
-        submitDownloadBtn = document.getElementById('submit-download-btn');
-        submitDownloadLoader = submitDownloadBtn.querySelector('.submit-download-loader');
-        downloadAuditForm = document.getElementById('download-audit-form');
 
-        if (submitDownloadBtn) {
-            submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
-        }
-    }
-
-    // Add event listener for the download popup acknowledgment checkbox
-    const downloadPopupAcknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
-    if (downloadPopupAcknowledgeCheckbox) {
-        downloadPopupAcknowledgeCheckbox.addEventListener('change', updateDownloadButtonState);
-    }
-});
+//  function copyToClipboard() {
+//    const copyText = document.getElementById('record-subsetilink').innerText;
+//    const textarea = document.createElement('textarea');
+//    textarea.value = copyText;
+//    document.body.appendChild(textarea);
+//    textarea.select();
+//    document.execCommand('copy');
+//    document.body.removeChild(textarea);
+//    alert("Copied the text: " + copyText);
+//}
