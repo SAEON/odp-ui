@@ -328,7 +328,74 @@ async function downloadSelectedRecords(event, buttonEl,record_id) {
     });
 }
 
+function openDownloadModal(btn) {
+  const downloadUrl = btn.getAttribute('data-download-url');
+  const recordId = btn.getAttribute('data-record-id') || '';
+  const doi = btn.getAttribute('data-doi') || '';
+  // fill form fields...
+  document.getElementById('da-download-url').value = downloadUrl;
+  document.getElementById('da-record-id').value = recordId;
+  document.getElementById('da-doi').value = doi;
+  // reset optional fields...
+  // show modal...
+  attachDownloadAuditHandlers();
+}
 
+function attachDownloadAuditHandlers() {
+  const form = document.getElementById('download-audit-form');
+  if (!form) return;
+  if (form.__download_handlers_attached) return;
+  form.__download_handlers_attached = true;
+
+  const accept = document.getElementById('da-accept-terms');
+  const submit = document.getElementById('da-submit');
+  accept.addEventListener('change', function () {
+    submit.disabled = !this.checked;
+  });
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    submit.disabled = true;
+
+    const payload = {
+      record_id: document.getElementById('da-record-id').value || null,
+      doi: document.getElementById('da-doi').value || null,
+      download_url: document.getElementById('da-download-url').value || null,
+      name: document.getElementById('da-name').value || null,
+      email: document.getElementById('da-email').value || null,
+      reason: document.getElementById('da-reason').value || null,
+      success: true,
+      meta: {}
+    };
+
+    fetch('/download/audit', {   // FastAPI route prefix: /download/audit
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+        // add CSRF header if needed
+      },
+      body: JSON.stringify(payload),
+      credentials: 'same-origin'
+    }).then(function (resp) {
+      if (!resp.ok) return resp.json().then(j => { throw new Error(j.detail || 'Failed to record download');});
+      return resp.json();
+    }).then(function (json) {
+      // hide modal then open download link
+      const modalEl = document.getElementById('download-audit-modal');
+      bootstrap.Modal.getInstance(modalEl).hide();
+      if (payload.download_url) {
+        window.open(payload.download_url, '_blank');
+      } else {
+        console.warn('No download_url provided');
+      }
+    }).catch(function (err) {
+      submit.disabled = false;
+      const feedback = document.getElementById('da-feedback');
+      feedback.style.display = 'block';
+      feedback.textContent = err.message || 'Failed to record download';
+    });
+  });
+}
 
 
 

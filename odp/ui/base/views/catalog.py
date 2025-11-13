@@ -21,12 +21,10 @@ from odp.ui.base.forms import SearchForm
 
 import requests
 
-
 bp = Blueprint(
     'catalog', __name__,
     static_folder=Path(__file__).parent.parent / 'static',
 )
-
 
 @bp.app_template_filter()
 def doi_title(doi: str) -> str:
@@ -51,7 +49,6 @@ def doi_title(doi: str) -> str:
         pass
 
     return ''
-
 
 def _select_metadata(record: dict, schema_id: ODPMetadataSchema) -> Optional[dict]:
     return next(
@@ -197,18 +194,11 @@ def subset_record_list():
     catalog_id = current_app.config['CATALOG_ID']
     record_ids = request.args.getlist('record_id_or_doi_list')
     record_ids_query = '&record_id_or_doi_list='.join(record_ids)
-    # Prepend the first parameter
     record_ids_query = f"record_id_or_doi_list={record_ids_query}"
-    # Pass the record IDs as query parameters
-
-    #Add page and size on the query paramenters &page=1&size=50
     page = request.args.getlist('page')[0]
 
     size = request.args.getlist('size')[0]
     catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
-    print("XXXXXXXXX",)
-    print(json.dumps(catalog_record_list))
-    print("sDS")
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
@@ -217,7 +207,6 @@ def subset_record_list():
 @bp.route('/proxy-download')
 def proxy_download():
     url = request.args.get('url')
-    print(url)
     r = requests.get(url)
     return Response(r.content, headers={
         'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
