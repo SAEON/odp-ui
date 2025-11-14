@@ -184,14 +184,39 @@ def sitemap():
 @bp.route('/subset')
 @cli.view()
 def subset_record_list():
+    """Display a subset of catalog records based on provided IDs or DOIs."""
     catalog_id = current_app.config['CATALOG_ID']
+
+    # Get and validate required parameters
     record_ids = request.args.getlist('record_id_or_doi_list')
+    if not record_ids:
+        abort(400, 'At least one record_id_or_doi_list parameter is required')
+
+    # Get pagination parameters with defaults
+    page = request.args.get('page', '1')
+    size = request.args.get('size', '50')
+
+    # Validate pagination parameters
+    try:
+        page_num = int(page)
+        size_num = int(size)
+        if page_num < 1 or size_num < 1:
+            abort(400, 'Page and size must be positive integers')
+    except ValueError:
+        abort(400, 'Page and size must be valid integers')
+
+    # Build query string for record IDs
     record_ids_query = '&record_id_or_doi_list='.join(record_ids)
     record_ids_query = f"record_id_or_doi_list={record_ids_query}"
-    page = request.args.getlist('page')[0]
 
-    size = request.args.getlist('size')[0]
-    catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
+    # Fetch catalog records from API
+    try:
+        catalog_record_list = cli.get(
+            f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page_num}&size={size_num}'
+        )
+    except Exception as e:
+        abort(500, f'Error fetching subset records: {str(e)}')
+
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
