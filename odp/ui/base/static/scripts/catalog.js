@@ -262,76 +262,83 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-async function downloadSelectedRecords(event, buttonEl,record_id) {
+async function downloadSelectedRecords(event, buttonEl, record_id) {
     event.preventDefault();
 
-    console.log("R.id: ",record_id,":")
+    console.log("Downloading records...");
     const records = JSON.parse(buttonEl.getAttribute('data-records'));
 
-    // if record_id is not an empty string, use it; otherwise call getSelectedIds()
+    // Get selected record IDs
     const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
-
-    // const selectedIds = getSelectedIds();
     console.log("Selected IDs:", selectedIds);
 
-    // Filter records based on selectedIds
+    // Filter records and extract DOIs
     const selectedRecords = records.filter(record => selectedIds.includes(record.id));
-    console.log("Selected Records:", selectedRecords);
+    const recordDois = selectedRecords.map(record => record.doi).filter(Boolean);
 
-    const zip = new JSZip();
-
-    for (const record of selectedRecords) {
-        const metadataRecord = record.metadata_records?.[0];
-        if (!metadataRecord) continue;
-
-        const metadata = metadataRecord.metadata;
-        const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
-        const folder = zip.folder(title);
-
-        // Add metadata as PDF via backend
-        try {
-            const response = await fetch('/catalog/format/metadata.pdf', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify([record])  // Send single record in array
-            });
-
-            if (!response.ok) throw new Error("Failed to generate PDF");
-
-            const pdfBlob = await response.blob();
-            folder.file('metadata.pdf', pdfBlob);
-        } catch (err) {
-            console.error("Error generating metadata PDF:", err);
-            // fallback to plain text metadata
-            folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
-        }
-
-        // Add downloadable file if available
-        const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
-        const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
-
-        if (downloadURL) {
-            try {
-                const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
-                const response = await fetch(proxyUrl);
-                const blob = await response.blob();
-                const extension = blob.type.split('/')[1] || 'bin';
-                folder.file(`${fileName}.${extension}`, blob);
-            } catch (err) {
-                console.error("Error downloading via proxy:", downloadURL, err);
-            }
-        }
+    if (recordDois.length === 0) {
+        alert('No valid records selected');
+        return;
     }
 
-    // Generate and trigger download
-    zip.generateAsync({ type: 'blob' }).then(content => {
+    // Get user metadata from cache or form
+    const userData = {
+        name: document.getElementById('da-name')?.value || '',
+        email: document.getElementById('da-email')?.value || '',
+        organisation: document.getElementById('da-reason')?.value || '',
+        reason: document.getElementById('da-reason')?.value || ''
+    };
+
+    // Validate required fields
+    if (!userData.name || !userData.email) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    try {
+        // Show loading state
+        buttonEl.disabled = true;
+        const originalText = buttonEl.innerText;
+        buttonEl.innerText = 'Creating bundle...';
+
+        // Call server-side endpoint to create ZIP bundle
+        const catalogId = document.getElementById('catalog-id')?.value || 'mims';
+        const doiParams = recordDois.map(doi => `record_dois=${encodeURIComponent(doi)}`).join('&');
+
+        const response = await fetch(`/catalog/download/bundle?catalog_id=${catalogId}&${doiParams}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user_metadata: userData
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status}): ${errorText}`);
+        }
+
+        // Download the ZIP file
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(content);
-        a.download = 'Records.zip';
+        a.href = url;
+        a.download = 'records.zip';
         a.click();
-    });
+        URL.revokeObjectURL(url);
+
+        console.log("Bundle downloaded successfully");
+
+    } catch (err) {
+        console.error("Error creating download bundle:", err);
+        alert(`Error creating bundle: ${err.message}`);
+    } finally {
+        // Restore button state
+        buttonEl.disabled = false;
+        buttonEl.innerText = originalText;
+    }
 }
 
 function openDownloadModal(btn) {
