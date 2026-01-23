@@ -346,7 +346,7 @@ function downloadSelectedRecords(event, buttonEl, record_id) {
             alert('Please select one or more records to download.');
             return;
         }
-
+        console.log('selectedIds',selectedIds)
         const selectedRecords = records.filter(record => selectedIds.includes(record.id));
 
         if (selectedRecords.length > 0) {
@@ -600,7 +600,7 @@ function updateDownloadButtonState() {
     }
 }
 
-function handleSingleRecordDownload(downloadUrl) {
+function handleSingleRecordDownload(downloadUrl,doi,recordId) {
     const nameInput = document.getElementById('download-popup-name');
     const emailInput = document.getElementById('download-popup-email');
     const organisationInput = document.getElementById('download-popup-organisation');
@@ -653,11 +653,14 @@ function handleSingleRecordDownload(downloadUrl) {
         name: name || null,
         email: email || null,
         organisation: organisation || null,
+        doi: doi || '10.15493/DEA.MIMS.15202023',
+        // record_id: recordId || null,
         meta: {
             source: 'MIMS-UI-Detail-Page',
             download_type: 'single_record'
         }
     };
+    console.log(payload)
 
     fetch('/catalog/download-audit', {
         method: 'POST',
