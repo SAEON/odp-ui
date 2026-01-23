@@ -419,13 +419,12 @@
     current_user,
     facet_values={}
 ) %}
-{% set datacite_metadata = record | select_datacite_metadata %}  {# always present #}
-{% set iso19115_metadata = record | select_iso19115_metadata %}  {# might be null #}
+{% set datacite_metadata = record | select_datacite_metadata %}
+{% set iso19115_metadata = record | select_iso19115_metadata %}
 {% set N, E, S, W = record.spatial_north, record.spatial_east, record.spatial_south, record.spatial_west %}
 
 <ul class="nav nav-tabs" role="tablist">
     <li class="nav-item" role="presentation">
-        {#<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">#}
         <div class="nav-link active py-3 px-4">
             {% if record.doi %}
                 DOI:
@@ -586,7 +585,7 @@
             {% elif prop == 'Keywords' %}
                 {% for keyword in record.keywords | sort %}
                     {% set query = request.args.copy() %}
-                    {# Clear all facet parameters first #}
+
                     {% set _ = query.pop('facet_keyword', None) %}
                     {% set _ = query.pop('facet_project', None) %}
                     {% set _ = query.pop('facet_location', None) %}
@@ -595,30 +594,24 @@
                     {% set _ = query.pop('facet_ebv', None) %}
                     {% set _ = query.pop('facet_sdg', None) %}
 
-                    {# Determine which facet this keyword belongs to #}
                     {% set found_facet = false %}
 
                     {% if keyword.startswith('EOV:') %}
-                        {# Extract value after "EOV: " and create EOV facet link #}
                         {% set eov_value = keyword[5:].strip() %}
                         {% set _ = query.update({'facet_eov': eov_value}) %}
                         {% set found_facet = true %}
                     {% elif keyword.startswith('EBV:') %}
-                        {# Extract value after "EBV: " and create EBV facet link #}
                         {% set ebv_value = keyword[5:].strip() %}
                         {% set _ = query.update({'facet_ebv': ebv_value}) %}
                         {% set found_facet = true %}
                     {% elif keyword.startswith('SDG') %}
-                        {# SDG keywords link to SDG facet with full value #}
                         {% set _ = query.update({'facet_sdg': keyword}) %}
                         {% set found_facet = true %}
                     {% endif %}
 
-                    {# Check structured facets (case-insensitive for better matching) #}
                     {% if not found_facet and facet_values %}
                         {% set keyword_lower = keyword.lower() %}
 
-                        {# Check Project facet #}
                         {% for facet_val in facet_values.get('Project', []) %}
                             {% if not found_facet and facet_val.lower() == keyword_lower %}
                                 {% set _ = query.update({'facet_project': facet_val}) %}
@@ -626,7 +619,6 @@
                             {% endif %}
                         {% endfor %}
 
-                        {# Check Location facet #}
                         {% for facet_val in facet_values.get('Location', []) %}
                             {% if not found_facet and facet_val.lower() == keyword_lower %}
                                 {% set _ = query.update({'facet_location': facet_val}) %}
@@ -634,7 +626,6 @@
                             {% endif %}
                         {% endfor %}
 
-                        {# Check Instrument facet #}
                         {% for facet_val in facet_values.get('Instrument', []) %}
                             {% if not found_facet and facet_val.lower() == keyword_lower %}
                                 {% set _ = query.update({'facet_instrument': facet_val}) %}
@@ -643,7 +634,6 @@
                         {% endfor %}
                     {% endif %}
 
-                    {# If no structured facet matched, use generic Keyword facet #}
                     {% if not found_facet %}
                         {% set _ = query.update({'facet_keyword': keyword}) %}
                     {% endif %}
@@ -719,10 +709,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-{#                    <h6 class="mb-3">Terms of use</h6>#}
-{#                    <div class="mb-4 p-3 border rounded bg-light">#}
-{#                        {{ config.CATALOG_TERMS_OF_USE }}#}
-{#                    </div>#}
+
                     Please provide some information before downloading.
                     
                     <form id="download-popup-form">
@@ -753,7 +740,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button id="download-btn" type="button" class="btn btn-primary" disabled
-                            onclick="handleSingleRecordDownload('{{ download_url }}')">
+                            onclick="handleSingleRecordDownload('{{ download_url }}', '{{ doi }}', '{{ record_id }}')">
                         Download
                     </button>
                 </div>
