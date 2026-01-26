@@ -153,8 +153,7 @@
 
             <div class="accordion-item mb-4">
                 <h5 class="accordion-header">
-                    <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#{{ facet_id }}">
+                    <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#{{ facet_id }}">
                         {{ facet_title }}
                     </button>
                 </h5>
@@ -308,7 +307,7 @@
                         </a>
                     </h5>
                     <p class="card-text">
-                        {{ abstract | truncate(500) }}
+                        {{ abstract | truncate(1000) }}
                     </p>
                 </div>
             </div>
@@ -431,64 +430,64 @@
                 <span class="user-select-all">
                         {{- record.doi -}}
                     </span>
-            {% else %}
-                No DOI
-            {% endif %}
-        </div>
-        {#</button>#}
-    </li>
-    {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
-        <li class="nav-item" role="presentation">
-            <a class="nav-link" href="{{ config.ODP_ADMIN_URL }}/records/{{ record.id }}" target="_blank">
-                Edit
-            </a>
+                {% else %}
+                    No DOI
+                {% endif %}
+            </div>
+            {#</button>#}
         </li>
-    {% endif %}
-</ul>
+        {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" href="{{ config.ODP_ADMIN_URL }}/records/{{ record.id }}" target="_blank">
+                    Edit
+                </a>
+            </li>
+        {% endif %}
+    </ul>
 
-<div class="tab-content p-4">
-    <div id="info" class="tab-pane fade show active" role="tabpanel">
-        {% set props = ['Title'] %}
+    <div class="tab-content p-4">
+        <div id="info" class="tab-pane fade show active" role="tabpanel">
+            {% set props = ['Title'] %}
 
-        {% if iso19115_metadata and iso19115_metadata.descriptiveKeywords %}
-            {% set theme = iso19115_metadata.descriptiveKeywords |
+            {% if iso19115_metadata and iso19115_metadata.descriptiveKeywords %}
+                {% set theme = iso19115_metadata.descriptiveKeywords |
                                selectattr('keywordType', '==', 'theme') |
                                map(attribute='keyword') | first %}
-            {% if theme %}
-                {% set props = props + ['Project'] %}
+                {% if theme %}
+                    {% set props = props + ['Project'] %}
+                {% endif %}
             {% endif %}
-        {% endif %}
 
-        {% set props = props + ['Authors', 'Publisher', 'Contributors'] %}
+            {% set props = props + ['Authors', 'Publisher', 'Contributors'] %}
 
-        {% set abstract = datacite_metadata.descriptions |
+            {% set abstract = datacite_metadata.descriptions |
                               selectattr('descriptionType', '==', 'Abstract') |
                               map(attribute='description') | first %}
-        {% if abstract %}
-            {% set props = props + ['Abstract'] %}
-        {% endif %}
+            {% if abstract %}
+                {% set props = props + ['Abstract'] %}
+            {% endif %}
 
-        {% set methods = datacite_metadata.descriptions |
+            {% set methods = datacite_metadata.descriptions |
                              selectattr('descriptionType', '==', 'Methods') |
                              map(attribute='description') | first %}
-        {% if methods %}
-            {% set props = props + ['Methods'] %}
-        {% endif %}
+            {% if methods %}
+                {% set props = props + ['Methods'] %}
+            {% endif %}
 
-        {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
+            {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
 
-        {% set vertical -%}
-        {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
-            {% set vert = iso19115_metadata.extent.verticalElement %}
-            Max: {{ vert.maximumValue }} {{ vert.unitOfMeasure }} <br/>
-            Min: {{ vert.minimumValue }} {{ vert.unitOfMeasure }}
-        {% endif %}
-        {%- endset %}
-        {% if vertical %}
-            {% set props = props + ['Vertical extent'] %}
-        {% endif %}
+            {% set vertical -%}
+                {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
+                    {% set vert = iso19115_metadata.extent.verticalElement %}
+                    Max: {{ vert.maximumValue }} {{ vert.unitOfMeasure }} <br/>
+                    Min: {{ vert.minimumValue }} {{ vert.unitOfMeasure }}
+                {% endif %}
+            {%- endset %}
+            {% if vertical %}
+                {% set props = props + ['Vertical extent'] %}
+            {% endif %}
 
-        {% set props = props + ['Keywords'] %}
+            {% set props = props + ['Keywords'] %}
 
         {% set related_ids -%}
         {% if datacite_metadata.relatedIdentifiers %}
@@ -520,19 +519,19 @@
             {% set props = props + ['Related resources'] %}
         {% endif %}
 
-        {% call(prop) render_info(record, properties=props, hide_id=True) %}
-            {% if prop == 'Title' %}
-                <strong>{{ datacite_metadata.titles[0].title }}</strong>
+            {% call(prop) render_info(record, properties=props, hide_id=True) %}
+                {% if prop == 'Title' %}
+                    <strong>{{ datacite_metadata.titles[0].title }}</strong>
 
-            {% elif prop == 'Project' %}
-                {{ theme }}
+                {% elif prop == 'Project' %}
+                    {{ theme }}
 
-            {% elif prop == 'Authors' %}
-                {% for creator in datacite_metadata.creators %}
-                    <p>{{ creator.name }}<br/>
-                        <small>{{ creator.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
-                    </p>
-                {% endfor %}
+                {% elif prop == 'Authors' %}
+                    {% for creator in datacite_metadata.creators %}
+                        <p>{{ creator.name }}<br/>
+                            <small>{{ creator.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
+                        </p>
+                    {% endfor %}
 
             {% elif prop == 'Contributors' %}
                 {% for contributor in datacite_metadata.contributors %}
@@ -541,46 +540,46 @@
                     </p>
                 {% endfor %}
 
-            {% elif prop == 'Abstract' %}
-                {{ abstract }}
+                {% elif prop == 'Abstract' %}
+                    {{ abstract }}
 
-            {% elif prop == 'Methods' %}
-                {{ methods }}
+                {% elif prop == 'Methods' %}
+                    {{ methods }}
 
-            {% elif prop == 'Temporal extent' %}
-                {% if record.temporal_start %}
-                    {{ record.temporal_start | date }}
-                    {% if record.temporal_end %}
-                        &ndash; {{ record.temporal_end | date }}
-                    {% endif %}
-                {% endif %}
-
-            {% elif prop == 'Geographic extent' %}
-                <div id="map"></div>
-                {% for place in datacite_metadata.geoLocations | map(attribute='geoLocationPlace') %}
-                    <p class="mt-3">
-                        {{ place }}
-                    </p>
-                {% endfor %}
-                {% if N is not none and E is not none and S is not none and W is not none %}
-                    <p class="mt-3">
-                        {% if N == S and E == W %}
-                            Lat: {{ N }}<br/>
-                            Lon: {{ E }}
-                        {% else %}
-                            North: {{ N }}<br/>
-                            South: {{ S }}<br/>
-                            West: {{ W }}<br/>
-                            East: {{ E }}
+                {% elif prop == 'Temporal extent' %}
+                    {% if record.temporal_start %}
+                        {{ record.temporal_start | date }}
+                        {% if record.temporal_end %}
+                            &ndash; {{ record.temporal_end | date }}
                         {% endif %}
-                    </p>
-                {% endif %}
+                    {% endif %}
 
-            {% elif prop == 'Vertical extent' %}
-                {{ vertical }}
+                {% elif prop == 'Geographic extent' %}
+                    <div id="map"></div>
+                    {% for place in datacite_metadata.geoLocations | map(attribute='geoLocationPlace') %}
+                        <p class="mt-3">
+                            {{ place }}
+                        </p>
+                    {% endfor %}
+                    {% if N is not none and E is not none and S is not none and W is not none %}
+                        <p class="mt-3">
+                            {% if N == S and E == W %}
+                                Lat: {{ N }}<br/>
+                                Lon: {{ E }}
+                            {% else %}
+                                North: {{ N }}<br/>
+                                South: {{ S }}<br/>
+                                West: {{ W }}<br/>
+                                East: {{ E }}
+                            {% endif %}
+                        </p>
+                    {% endif %}
 
-            {% elif prop == 'Publisher' %}
-                {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
+                {% elif prop == 'Vertical extent' %}
+                    {{ vertical }}
+
+                {% elif prop == 'Publisher' %}
+                    {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
 
             {% elif prop == 'Keywords' %}
                 {% for keyword in record.keywords | sort %}
@@ -643,25 +642,25 @@
                     </a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
 
-            {% elif prop == 'Data' %}
-                <div class="d-flex justify-content-between">
-                    <a href="{{ datacite_metadata.rightsList[0].rightsURI }}" target="_blank">
-                        {{ datacite_metadata.rightsList[0].rights }}
-                    </a>
-                    <div>
-                        {% if record.doi %}
-                            {{ citation_button(record) }}
-                        {% endif %}
-                        {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
-                            {{ download_button(
+                {% elif prop == 'Data' %}
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ datacite_metadata.rightsList[0].rightsURI }}" target="_blank">
+                            {{ datacite_metadata.rightsList[0].rights }}
+                        </a>
+                        <div>
+                            {% if record.doi %}
+                                {{ citation_button(record) }}
+                            {% endif %}
+                            {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
+                                {{ download_button(
                                     datacite_metadata.immutableResource.resourceDownload.downloadURL
                                 ) }}
-                        {% endif %}
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
 
-            {% elif prop == 'Related resources' %}
-                {{ related_ids }}
+                {% elif prop == 'Related resources' %}
+                    {{ related_ids }}
 
             {% endif %}
         {% endcall %}
@@ -676,10 +675,10 @@
     {# Render a related identifier object. #}
     {% if related_id.relatedIdentifierType == 'DOI' %}
         {% set doi = related_id.relatedIdentifier | doi %}
-        {% if doi and doi.startswith('10.15493') %}
+        {% if doi.startswith('10.15493') %}
             {{ doi | doi_title }} (<a href="{{ url_for('catalog.view', id=doi) }}">
-            {{- doi -}}
-        </a>)
+                {{- doi -}}
+            </a>)
         {% else %}
             <a href="https://doi.org/{{ doi }}" target="_blank">
                 {{ doi }}
@@ -694,6 +693,7 @@
     {% endif %}
 {% endmacro %}
 
+
 {% macro download_button(
     download_url
 ) %}
@@ -702,7 +702,7 @@
     </button>
 
     <div class="modal fade" id="download-popup" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5">Download Confirmation</h1>
@@ -711,7 +711,7 @@
                 <div class="modal-body">
 
                     Please provide some information before downloading.
-                    
+
                     <form id="download-popup-form">
                         <div class="mb-3">
                             <label for="download-popup-name" class="form-label">Name</label>
@@ -771,38 +771,35 @@
                 </div>
                 <div class="modal-footer">
                     <div class="container-fluid">
-                        <div class="row">
-                            <div class="col-auto">
-                                <label for="citation-style" class="col-form-label">
-                                    Style
-                                </label>
-                            </div>
-                            <div class="col">
-                                <select id="citation-style" class="form-control"
-                                        onchange="formatCitation('{{ record.doi }}')">
-                                    <option value="apa">APA</option>
-                                    <option value="bibtex">BibTeX</option>
-                                    <option value="chicago-author-date">Chicago</option>
-                                    <option value="elsevier-harvard">Harvard</option>
-                                    <option value="ieee">IEEE</option>
-                                    <option value="university-of-york-mla">MLA</option>
-                                    {% if ris_metadata and ris_metadata.ris %}
-                                        <option value="ris">RIS</option>
-                                    {% endif %}
-                                    <option value="vancouver">Vancouver</option>
-                                </select>
-                            </div>
-                            <div class="col-auto">
-                                <button id="copy-citation-btn" type="button" class="btn btn-primary"
-                                        onclick="copyCitation()">
-                                    Copy to clipboard
-                                </button>
-                            </div>
+                    <div class="row">
+                        <div class="col-auto">
+                            <label for="citation-style" class="col-form-label">
+                                Style
+                            </label>
                         </div>
+                        <div class="col">
+                            <select id="citation-style" class="form-control" onchange="formatCitation('{{ record.doi }}')">
+                                <option value="apa">APA</option>
+                                <option value="bibtex">BibTeX</option>
+                                <option value="chicago-author-date">Chicago</option>
+                                <option value="elsevier-harvard">Harvard</option>
+                                <option value="ieee">IEEE</option>
+                                <option value="university-of-york-mla">MLA</option>
+                                {% if ris_metadata and ris_metadata.ris %}
+                                    <option value="ris">RIS</option>
+                                {% endif %}
+                                <option value="vancouver">Vancouver</option>
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button id="copy-citation-btn" type="button" class="btn btn-primary" onclick="copyCitation()">
+                                Copy to clipboard
+                            </button>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 {% endmacro %}
-

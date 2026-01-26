@@ -53,7 +53,6 @@ def doi_title(doi: str) -> str:
 
     return ''
 
-
 def _select_metadata(record: dict, schema_id: ODPMetadataSchema) -> Optional[dict]:
     return next(
         (metadata_record['metadata']

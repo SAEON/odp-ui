@@ -1,3 +1,4 @@
+// the user-drawn box on the filter-by-location map
 let box;
 const boxColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--bs-info');
