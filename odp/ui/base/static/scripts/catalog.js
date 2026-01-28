@@ -678,6 +678,32 @@ function handleSingleRecordDownload(downloadUrl,doi,recordId) {
     if (downloadModal) downloadModal.hide();
 }
 
+function openSingleDownloadModal(downloadUrl, doi, recordId) {
+    // 1. Get the modal submit button
+    const submitBtn = document.getElementById('download-btn');
+
+    if (submitBtn) {
+        // 2. dynamically set the onclick to call the existing handler with THIS record's data
+        submitBtn.setAttribute('onclick', `handleSingleRecordDownload('${downloadUrl}', '${doi}', '${recordId}')`);
+
+        // 3. Reset button state
+        submitBtn.disabled = true;
+    }
+
+    // 4. Reset and populate form fields (using your existing cache function)
+    const checkbox = document.getElementById('accept-terms-of-use-popup');
+    if (checkbox) checkbox.checked = false;
+
+    populateDownloadFormFromCache('download-popup-name', 'download-popup-email', 'download-popup-organisation');
+
+    // 5. Show the modal
+    const modalEl = document.getElementById('download-popup');
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function () {
 
     updateButtonStates();
