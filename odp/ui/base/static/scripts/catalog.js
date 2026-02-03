@@ -159,7 +159,7 @@ function createFilterMap() {
         drawnItems.addLayer(box);
     });
 
-    map.on(L.Draw.Event.DELETED, function (event) {
+    map.on(L.Draw.Event.DELETED, function () {
         box = null;
     });
 }
@@ -284,7 +284,7 @@ function goToSelectedRecordList(event, records) {
     window.location.href = redirectUrl;
 }
 
-function selectedRecordListLink(event, buttonEl) {
+function selectedRecordListLink(event) {
     event.preventDefault();
     const selectedIds = getSelectedIds();
     const redirectUrl = buildRedirectUrl(selectedIds);
@@ -434,7 +434,6 @@ async function handleSubmitAndPerformDownload(event) {
             doiList.push(record.id);
         }
 
-        let individualFileSize = null;
         if (metadata && metadata.immutableResource && metadata.immutableResource.resourceDownload) {
             const resource = metadata.immutableResource.resourceDownload;
 
@@ -496,7 +495,6 @@ async function _performZipDownload(buttonEl, selectedRecords) {
     if (loader) loader.style.display = 'inline-block';
 
     try {
-        console.log("Selected Records for zipping:", selectedRecords);
         const zip = new JSZip();
 
         for (const record of selectedRecords) {
@@ -551,7 +549,7 @@ async function _performZipDownload(buttonEl, selectedRecords) {
     }
 }
 
-function createAndDisplayLink(event, button) {
+function createAndDisplayLink(event) {
     event.preventDefault();
     const targetInput = document.getElementById('record-subset-link');
     if (!targetInput) {
@@ -601,7 +599,7 @@ function updateDownloadButtonState() {
     }
 }
 
-function handleSingleRecordDownload(downloadUrl,doi,recordId) {
+function handleSingleRecordDownload(downloadUrl, doi) {
     const nameInput = document.getElementById('download-popup-name');
     const emailInput = document.getElementById('download-popup-email');
     const organisationInput = document.getElementById('download-popup-organisation');
