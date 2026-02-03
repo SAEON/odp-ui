@@ -346,7 +346,6 @@ function downloadSelectedRecords(event, buttonEl, record_id) {
             alert('Please select one or more records to download.');
             return;
         }
-        console.log('selectedIds',selectedIds)
         const selectedRecords = records.filter(record => selectedIds.includes(record.id));
 
         if (selectedRecords.length > 0) {
@@ -658,7 +657,6 @@ function handleSingleRecordDownload(downloadUrl, doi) {
             download_type: 'single_record'
         }
     };
-    console.log(payload)
 
     fetch('/catalog/download-audit', {
         method: 'POST',
