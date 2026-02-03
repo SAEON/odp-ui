@@ -287,7 +287,6 @@ function selectedRecordListLink(event) {
     event.preventDefault();
     const selectedIds = getSelectedIds();
     const redirectUrl = buildRedirectUrl(selectedIds);
-    // document.getElementById('record-subsetilink').innerText = redirectUrl;
     const linkOutputElement = document.getElementById('record-subset-link-text') || document.getElementById('record-subsetilink');
     if (linkOutputElement) {
         linkOutputElement.innerText = redirectUrl;
@@ -651,7 +650,6 @@ function handleSingleRecordDownload(downloadUrl, doi) {
         email: email || null,
         organisation: organisation || null,
         doi: doi || '10.15493/DEA.MIMS.15202023',
-        // record_id: recordId || null,
         meta: {
             source: 'MIMS-UI-Detail-Page',
             download_type: 'single_record'
