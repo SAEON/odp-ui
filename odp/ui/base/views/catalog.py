@@ -248,7 +248,6 @@ def subset_record_list():
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
-        # app_name = current_app.config['SESSION_COOKIE_NAME'].split('.')[0]
         app_name=client_id
     )
 
