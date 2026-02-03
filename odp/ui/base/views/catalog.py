@@ -366,14 +366,12 @@ def download_audit():
         return jsonify({'error': 'No JSON payload received'}), 400
 
     try:
-
-        api_response = cli.post('/download/audit', payload)
-        api_response.raise_for_status()
-
-        return api_response.json(), api_response.status_code
+        # cli.post() returns parsed JSON response, already handled errors
+        response_data = cli.post('/download/audit', payload)
+        return jsonify(response_data), 201
 
     except Exception as e:
-
+        current_app.logger.error(f"Download audit failed: {str(e)}", exc_info=True)
         try:
             error_data = e.response.json()
             status_code = e.response.status_code
