@@ -320,9 +320,19 @@ def format_metadata_pdf():
         }
 
         current_app.logger.info(f"Calling ODP API for PDF generation")
-        # Use return_bytes=True to get binary PDF data instead of trying to parse as JSON
-        pdf_bytes = cli.post('/catalog/metadata/generate-pdf', payload, return_bytes=True)
 
+        # Make direct request to ODP API for PDF (binary response)
+        # The cli.post() method tries to parse JSON, but PDF is binary
+        # So we use requests directly to get the binary content
+        api_url = config.ODP.API_URL
+        response = requests.post(
+            f'{api_url}/catalog/metadata/generate-pdf',
+            json=payload,
+            timeout=30
+        )
+        response.raise_for_status()
+
+        pdf_bytes = response.content
         current_app.logger.info(f"PDF generated successfully: {len(pdf_bytes)} bytes")
         return Response(
             pdf_bytes,
