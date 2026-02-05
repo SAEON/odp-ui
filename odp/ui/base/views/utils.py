@@ -13,10 +13,6 @@ def populate_instruments_choices(field):
     field.choices = get_keywords('instruments')
 
 
-def populate_location_choices(field):
-    field.choices = get_keywords('location_keywords')
-
-
 def get_keywords(keyword_type):
     keyword_response = requests.get(f'{KEYWORDS_URL}{keyword_type}')
     keywords = keyword_response.json()
@@ -24,7 +20,7 @@ def get_keywords(keyword_type):
 
     clean_options = sorted(list(set([
         v for v in extracted_options if v != 'NOT APPLICABLE'
-    ])))
+    ])), key=lambda x: x[1])
 
     return clean_options
 
@@ -114,12 +110,8 @@ def get_orcid_record(orcid_id: str, bearer_token: str):
 
 def clean_submission_data(submission_form_data: dict) -> dict:
     data = dict(submission_form_data)
-
-    # Dates need to be serialised
     data['date_range']['start_date'] = str(submission_form_data['date_range']['start_date'])
     data['date_range']['end_date'] = str(submission_form_data['date_range']['end_date'])
-    if 'publication_year' in data:
-        data['publication_year'] = str(submission_form_data['publication_year'])
 
     cleaned_data = remove_csrf_tokens(data)
 

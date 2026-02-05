@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% from 'content.j2' import render_info, render_buttons %}
+
+{% block main %}
+    <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
+        <div class="container-sm">
+            <div class="row col-6 m-auto">
+                <h2>{{ submission.data['title'] }}</h2>
+                <div>
+                    <div class="mt-4">
+                        {% if not submission.status == 'editing' %}
+                            <div class="alert alert-dismissible alert-info mt-2">
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                <strong>Note!</strong> This submission has been submitted to the curation team at SAEON.
+                                It will be reviewed before being published. You will be supplied with a DOI as soon as
+                                it has been published. You will no longer be able to edit this submission.
+                            </div>
+                        {% endif %}
+                        Status: <span
+                            class="badge bg-{{ 'info' if submission.status == 'editing' else 'success' }}">{{ submission.status }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label mt-4">Uploaded Dataset</label>
+                    <div class="input-group mt-1">
+                        <input type="text" class="form-control" placeholder="{{ submission.dataset_file_name }}"
+                               disabled="">
+                        <a href="{{ url_for('.upload', id=submission.id) }}"
+                           class="btn btn-primary {{ 'disabled' if not submission.status == 'editing' }}">
+                            Upload/Change Dataset
+                        </a>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{{ url_for('.edit', id=submission.id) }}"
+                       class="btn btn-outline-primary btn-action {{ 'disabled' if not submission.status == 'editing' }}"
+                    >
+                        Edit Metadata
+                    </a>
+                    <a href="{{ url_for('.submit', id=submission.id) }}"
+                       class="btn btn-outline-success btn-action {{ 'disabled' if not submission.status == 'editing' }}"
+                       data-toggle="tooltip" data-placement="bottom"
+                       title="Submit the data to SAEON for curation and publication. Your submission cannot be edited after this"
+                    >
+                        Submit
+                    </a>
+                    <form action="{{ url_for('.delete', id=submission.id) }}" method="post">
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-action"
+                                onclick="return confirm('Are you sure you want to delete this Submission? This cannot be undone')"
+                                {{ 'disabled' if not submission.status == 'editing' }}>
+                            Delete Submission
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

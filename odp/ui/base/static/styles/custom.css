@@ -78,7 +78,7 @@ pre {
 .close {
     color: #aaa;
     float: right;
-    font-size: 28px;``
+    font-size: 28px;
     font-weight: bold;
 }
 
@@ -87,4 +87,18 @@ pre {
     color: black;
     text-decoration: none;
     cursor: pointer;
+}
+
+.field_list_wrapper .field_list_row:only-child .btn-remove-field-list-entry {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.field_list_row:not(:last-child) {
+    margin-bottom: 20px;
+}
+
+.subform-row:not(:last-child) {
+    margin-bottom: 10px;
 }
