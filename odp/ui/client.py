@@ -7,10 +7,11 @@ from typing import Optional
 
 import requests
 from authlib.integrations.flask_client import OAuth
-from flask import Flask, Response, flash, g, redirect, request, url_for
+from flask import Flask, Response, flash, g, redirect, request, session, url_for
 from flask_login import LoginManager, current_user, login_user, logout_user
 from redis import Redis
 
+from odp.config import config
 from odp.const import ODPScope
 from odp.lib.cache import Cache
 from odp.lib.client import ODPAPIError, ODPBaseClient, ODPClient
@@ -129,9 +130,24 @@ class ODPUserClient(ODPBaseClient):
     def token(self) -> dict:
         return self.oauth.fetch_token('hydra')
 
-    def _send_request(self, method: str, url: str, data: dict, params: dict) -> requests.Response:
+    def _send_request(
+            self,
+            method: str,
+            url: str,
+            data: dict | None,
+            files: dict | None,
+            params: dict,
+            headers: dict,
+    ) -> requests.Response:
         """Send a request to the API with the user's access token."""
-        return self.oauth.hydra.request(method, url, json=data, params=params)
+        return self.oauth.hydra.request(
+            method,
+            url,
+            json=data,
+            files=files,
+            params=params,
+            headers=headers,
+        )
 
     def _signup(self):
         """Initiate signup.
@@ -172,7 +188,8 @@ class ODPUserClient(ODPBaseClient):
         self.cache.set(self._cache_key(user_id, 'user'), json.dumps(asdict(localuser)))
 
         try:
-            token_data = self.get('/token/')
+            # force use of the ODP API token endpoint, in case we are cliented to another API
+            token_data = self.get('/token/', api_url=config.ODP.API_URL)
             user_permissions = token_data['permissions']
             self.cache.set(self._cache_key(user_id, 'permissions'), json.dumps(user_permissions))
 
@@ -188,7 +205,9 @@ class ODPUserClient(ODPBaseClient):
 
         login_user(localuser)
 
-        return redirect(url_for('home.index'))
+        active_page = session.get('active_page_url') or url_for('home.index')
+
+        return redirect(active_page)
 
     def _logout(self):
         """Initiate logout.
