@@ -413,68 +413,20 @@ async function handleSubmitAndPerformDownload(event) {
     submitDownloadBtn.disabled = true;
     submitDownloadLoader.style.display = 'inline-block';
 
-    const name = nameInput.value;
-    const email = emailInput.value;
-    const organisation = organisationInput.value;
-
     // Save to cache for future downloads
-    saveDownloadCache(name, email, organisation);
+    saveDownloadCache(nameInput.value, emailInput.value, organisationInput.value);
 
-    const doiList = [];
-    const urlList = [];
-    let totalFileSize = 0;
-
-    for (const record of downloadContext.recordsToDownload) {
-        const metadata = selectDataciteMetadata(record);
-
-        if (record.id) {
-            doiList.push(record.id);
-        }
-
-        if (metadata && metadata.immutableResource && metadata.immutableResource.resourceDownload) {
-            const resource = metadata.immutableResource.resourceDownload;
-
-            if (resource.downloadURL) {
-                urlList.push(resource.downloadURL);
-            }
-            if (resource.resourceSize) {
-                const size = parseInt(resource.resourceSize, 10);
-                if (!isNaN(size)) {
-                    totalFileSize += size;
-                }
-            }
-        }
-    }
-
-    const payload = {
-        download_url: 'client_generated_zip_bundle',
-        file_size: totalFileSize > 0 ? totalFileSize : null,
-        success: true, // Optimistic logging
-
-        name: name || null,
-        email: email || null,
-        organisation: organisation || null,
-
-        meta: {
-            source: 'MIMS-UI',
-            download_type: 'zip_bundle',
-            record_count: downloadContext.recordsToDownload.length,
-            dois: doiList,
-            individual_urls: urlList
-        }
+    // Perform ZIP download with user data (server handles audit logging automatically)
+    const userData = {
+        name: nameInput.value.trim(),
+        email: emailInput.value.trim(),
+        organisation: organisationInput.value.trim()
     };
-
-    fetch('/catalog/download-audit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    }).catch(err => console.error('Audit log failed:', err));
 
     await _performZipDownload(
         downloadContext.buttonElement,
-        downloadContext.recordsToDownload
+        downloadContext.recordsToDownload,
+        userData
     );
 
     submitDownloadBtn.disabled = false;
@@ -487,56 +439,46 @@ async function handleSubmitAndPerformDownload(event) {
     };
 }
 
-async function _performZipDownload(buttonEl, selectedRecords) {
+async function _performZipDownload(buttonEl, selectedRecords, userData) {
     const loader = buttonEl.querySelector('.download-loader');
     if (loader) loader.style.display = 'inline-block';
 
     try {
-        const zip = new JSZip();
+        // Prepare record IDs (DOIs or UUIDs)
+        const recordIds = selectedRecords
+            .map(record => record.doi || record.id)
+            .filter(id => id);
 
-        for (const record of selectedRecords) {
-            const metadataRecord = record.metadata_records?.find(mr => mr.schema_id === "SAEON.DataCite4");
-            if (!metadataRecord) continue;
-
-            const metadata = metadataRecord.metadata;
-            const title = metadata.titles?.[0]?.title?.replace(/[<>:"/\\|?*]+/g, '_') || 'Untitled';
-            const folder = zip.folder(title);
-
-            try {
-                const response = await fetch('/catalog/format/metadata.pdf', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify([record])
-                });
-                if (!response.ok) throw new Error("Failed to generate PDF");
-                const pdfBlob = await response.blob();
-                folder.file('metadata.pdf', pdfBlob);
-            } catch (err) {
-                console.error("Error generating metadata PDF:", err);
-                folder.file('metadata.txt', JSON.stringify(metadata, null, 2));
-            }
-
-            const downloadURL = metadata.immutableResource?.resourceDownload?.downloadURL + '/download';
-            const fileName = metadata.immutableResource?.resourceDownload?.fileName || 'file';
-
-            if (downloadURL) {
-                try {
-                    const proxyUrl = `/catalog/proxy-download?url=${encodeURIComponent(downloadURL)}`;
-                    const response = await fetch(proxyUrl);
-                    const blob = await response.blob();
-                    const extension = blob.type.split('/')[1] || 'bin';
-                    folder.file(`${fileName}.${extension}`, blob);
-                } catch (err) {
-                    console.error("Error downloading via proxy:", downloadURL, err);
-                }
-            }
+        if (recordIds.length === 0) {
+            throw new Error('No valid record IDs found');
         }
 
-        const content = await zip.generateAsync({type: 'blob'});
+        // Call server-side ZIP generation endpoint
+        const response = await fetch('/catalog/generate-zip-bundle', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                record_ids: recordIds,
+                user_data: userData
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+
+        // Get ZIP blob from response
+        const zipBlob = await response.blob();
+
+        // Trigger download
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(content);
-        a.download = 'Records.zip';
+        a.href = URL.createObjectURL(zipBlob);
+        a.download = 'records.zip';
         a.click();
+        URL.revokeObjectURL(a.href);
 
     } catch (err) {
         console.error("Download failed:", err);

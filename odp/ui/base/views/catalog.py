@@ -354,6 +354,59 @@ def format_metadata_pdf():
         return jsonify(error_data), status_code
 
 
+@bp.route('/generate-zip-bundle', methods=['POST'])
+def generate_zip_bundle():
+    """
+    Proxy endpoint for server-side ZIP bundle generation.
+
+    Receives record IDs and user data from the UI frontend,
+    forwards the request to the ODP API server for ZIP generation,
+    and returns the binary ZIP file to the client.
+
+    Avoids CORS issues by routing through the UI server.
+
+    Request body:
+    {
+        "record_ids": ["10.15493/ABC", "10.15493/DEF"],
+        "user_data": {
+            "name": "User Name",
+            "email": "user@example.com",
+            "organisation": "University"
+        }
+    }
+
+    Response: Binary ZIP file with ZIP content headers
+    """
+    payload = request.json
+    if not payload:
+        return jsonify({'error': 'No JSON payload received'}), 400
+
+    try:
+        # Forward request to ODP API server
+        api_response = cli.post('/catalog/generate-zip-bundle', payload, return_bytes=True)
+
+        # Return binary ZIP file with proper headers
+        return Response(
+            api_response,
+            mimetype='application/zip',
+            headers={
+                'Content-Disposition': 'attachment; filename="records.zip"',
+                'Content-Length': str(len(api_response))
+            }
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"ZIP generation failed: {str(e)}", exc_info=True)
+        try:
+            error_data = e.response.json()
+            status_code = e.response.status_code
+        except:
+            error_data = {'error': str(e)}
+            status_code = 500
+
+        return jsonify(error_data), status_code
+
+
 @bp.route('/download-audit', methods=['POST'])
 def download_audit():
     """
