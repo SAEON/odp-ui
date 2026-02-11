@@ -2,6 +2,66 @@
 {% from 'controls.j2' import check_item %}
 
 
+{% macro download_audit_modal() %}
+    <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Please provide some information before downloading.</p>
+                    <form id="download-audit-form">
+                        <div class="mb-3">
+                            <label for="download-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="download-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="download-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="download-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="download-reason" class="form-label">Organisation</label>
+                            <input type="text" class="form-control" id="organisation" required>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
+                                       name="disclaimer-acknowledgment" required>
+                                <label class="form-check-label" for="disclaimer-acknowledgment">
+                                    <small class="text-muted">
+                                        <strong>Data Usage Acknowledgment:</strong> These data are made available
+                                        with the express understanding that any such use will properly acknowledge
+                                        the originator(s) and publisher and cite the accession numbers and/or
+                                        associated Digital Object Identifiers. Anyone wishing to use these data
+                                        should properly cite and attribute the data providers listed as authors in
+                                        the metadata provided with each dataset. It is expected that all the
+                                        conditions of the data license will be strictly honoured. Use of any
+                                        material herein should be properly cited using the dataset's persistent
+                                        identifiers, such as accession numbers and DOIs.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submit-download-btn">
+                <span class="submit-download-loader" style="display:none;">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                </span>
+                        Submit and Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+
 {% macro search_box(
     form,
     placeholder='Search the ODP catalogue'
@@ -201,24 +261,12 @@
                                    onclick="toggleSelectAll(this)">
                             <label class="form-check-label" for="select_all">Select All</label>
                         </div>
-{#                        <div class="form-check">#}
-{#                            <input class="form-check-input" type="checkbox" id="unselect_all"#}
-{#                                   onclick="toggleUnSelectAll(this)">#}
-{#                            <label class="form-check-label" for="unselect_all">Unselect All</label>#}
-{#                        </div>#}
                     </div>
                     <div>
-                        {% set download_urls = [] %}
-                        {% for record in records %}
-                            {% set metadata = record | select_datacite_metadata %}
-                            {% if metadata and metadata.immutableResource and metadata.immutableResource.resourceDownload %}
-                                {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
-                            {% endif %}
-                        {% endfor %}
+
                         <button id="download-selected-btn"
                                 onclick="downloadSelectedRecords(event, this,'')"
                                 class="btn btn-outline-primary btn-action"
-                                data-download-urls='{{ download_urls | tojson | safe }}'
                                 data-records='{{ records | tojson | safe }}'
                         >
                             <img src="{{ url_for('static', filename='images/download-icon.png') }}"
@@ -275,31 +323,15 @@
                                     {% set download_url = immutable_resource.resourceDownload.downloadURL %}
 
                                     <button class="btn btn-link p-0 no-outline"
-            type="button"
-            onclick="openSingleDownloadModal('{{ download_url }}', '{{ record.doi }}', '{{ record.id }}')">
-        <img src="{{ url_for('static', filename='images/download-icon.png') }}"
-             height="15px">
-        <span class="download-loader" style="display:none;">
+                                            type="button"
+                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}')"
+                                            data-records='[{"id":"{{ record.id }}","doi":"{{ record.doi }}"}]'>
+                                        <img src="{{ url_for('static', filename='images/download-icon.png') }}"
+                                             height="15px">
+                                        <span class="download-loader" style="display:none;">
             <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
         </span>
-    </button>
-
-{#                                    <button#}
-{#                                            class="btn btn-link p-0 no-outline"#}
-{#                                    >#}
-{#                                        handleSingleRecordDownload(downloadUrl,doi,recordId)#}
-{#                                        #}
-{#                                        <a onclick="downloadSelectedRecords(event,this,'{{ record.id }}')"#}
-{#                                           data-records='{{ records | tojson | safe }}'>#}
-{#                                            <img src="{{ url_for('static', filename='images/download-icon.png') }}"#}
-{#                                                 height="15px">#}
-{#                                            <span class="download-loader" style="display:none;">#}
-{#        <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>#}
-{#    </span>#}
-{#                                        </a>#}
-{##}
-{##}
-{#                                    </button>#}
+                                    </button>
 
 
                                 {% else %}
@@ -373,100 +405,9 @@
             </div>
         </div>
 
-        <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Please provide some information before downloading.</p>
-                <form id="download-audit-form">
-                    <div class="mb-3">
-                        <label for="download-name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="download-name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="download-email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-reason" class="form-label">Organisation</label>
-                        <input type="text" class="form-control" id="organisation" required>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
-                                   name="disclaimer-acknowledgment" required>
-                            <label class="form-check-label" for="disclaimer-acknowledgment">
-                                <small class="text-muted">
-                                    <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                                </small>
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submit-download-btn">
-                    <span class="submit-download-loader" style="display:none;">
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    </span>
-                    Submit and Download
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
+        {{ download_audit_modal() }}
 
     </form>
-
-    <div class="modal fade" id="download-popup" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5">Download Confirmation</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                Please provide some information before downloading.
-                <form id="download-popup-form">
-                    <div class="mb-3">
-                        <label for="download-popup-name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="download-popup-name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-popup-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="download-popup-email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-popup-organisation" class="form-label">Organisation</label>
-                        <input type="text" class="form-control" id="download-popup-organisation" required>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="accept-terms-of-use-popup" onchange="document.getElementById('download-btn').disabled = !this.checked">
-                            <label class="form-check-label" for="accept-terms-of-use-popup">
-                                <small class="text-muted">
-                                    <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers.
-                                </small>
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button id="download-btn" type="button" class="btn btn-primary" disabled>
-                    Download
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endmacro %}
 
 
@@ -710,7 +651,9 @@
                         {% endif %}
                         {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
                             {{ download_button(
-                                    datacite_metadata.immutableResource.resourceDownload.downloadURL
+                                    datacite_metadata.immutableResource.resourceDownload.downloadURL,
+                                    record.id,
+                                    record.doi
                                 ) }}
                         {% endif %}
                     </div>
@@ -732,7 +675,7 @@
     {# Render a related identifier object. #}
     {% if related_id.relatedIdentifierType == 'DOI' %}
         {% set doi = related_id.relatedIdentifier | doi %}
-        {% if doi and doi.startswith('10.15493') %}
+        {% if doi.startswith('10.15493') %}
             {{ doi | doi_title }} (<a href="{{ url_for('catalog.view', id=doi) }}">
             {{- doi -}}
         </a>)
@@ -750,59 +693,16 @@
     {% endif %}
 {% endmacro %}
 
+
 {% macro download_button(
-    download_url
+    download_url,
+    record_id,
+    doi=None
 ) %}
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#download-popup">
-        Download
+    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}')" data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
+        <span class="download-text">Download</span>
+        <span class="download-loader spinner-border spinner-border-sm ms-2" style="display:none;"></span>
     </button>
-
-    <div class="modal fade" id="download-popup" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Download Confirmation</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-
-                    Please provide some information before downloading.
-                    
-                    <form id="download-popup-form">
-                        <div class="mb-3">
-                            <label for="download-popup-name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="download-popup-name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="download-popup-email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="download-popup-email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="download-popup-organisation" class="form-label">Organisation</label>
-                            <input type="text" class="form-control" id="download-popup-organisation" required>
-                        </div>
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="accept-terms-of-use-popup">
-                                <label class="form-check-label" for="accept-terms-of-use-popup">
-                                    <small class="text-muted">
-                                        <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                                    </small>
-                                </label>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button id="download-btn" type="button" class="btn btn-primary" disabled
-                            onclick="handleSingleRecordDownload('{{ download_url }}', '{{ doi }}', '{{ record_id }}')">
-                        Download
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 {% endmacro %}
 
 
@@ -861,4 +761,3 @@
         </div>
     </div>
 {% endmacro %}
-

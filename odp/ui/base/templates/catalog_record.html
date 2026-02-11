@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'catalog.j2' import render_metadata %}
+{% from 'catalog.j2' import render_metadata, download_audit_modal %}
 
 {% block web_title %}
     {{ super() }} |
@@ -17,6 +17,8 @@
             </div>
         </div>
     </main>
+
+    {{ download_audit_modal() }}
 {% endblock %}
 
 {% block scripts %}
