@@ -2,6 +2,66 @@
 {% from 'controls.j2' import check_item %}
 
 
+{% macro download_audit_modal() %}
+    <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Please provide some information before downloading.</p>
+                    <form id="download-audit-form">
+                        <div class="mb-3">
+                            <label for="download-name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="download-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="download-email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="download-email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="download-reason" class="form-label">Organisation</label>
+                            <input type="text" class="form-control" id="organisation" required>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
+                                       name="disclaimer-acknowledgment" required>
+                                <label class="form-check-label" for="disclaimer-acknowledgment">
+                                    <small class="text-muted">
+                                        <strong>Data Usage Acknowledgment:</strong> These data are made available
+                                        with the express understanding that any such use will properly acknowledge
+                                        the originator(s) and publisher and cite the accession numbers and/or
+                                        associated Digital Object Identifiers. Anyone wishing to use these data
+                                        should properly cite and attribute the data providers listed as authors in
+                                        the metadata provided with each dataset. It is expected that all the
+                                        conditions of the data license will be strictly honoured. Use of any
+                                        material herein should be properly cited using the dataset's persistent
+                                        identifiers, such as accession numbers and DOIs.
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="submit-download-btn">
+                <span class="submit-download-loader" style="display:none;">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                </span>
+                        Submit and Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+
 {% macro search_box(
     form,
     placeholder='Search the ODP catalogue'
@@ -153,7 +213,8 @@
 
             <div class="accordion-item mb-4">
                 <h5 class="accordion-header">
-                    <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#{{ facet_id }}">
+                    <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#{{ facet_id }}">
                         {{ facet_title }}
                     </button>
                 </h5>
@@ -200,24 +261,12 @@
                                    onclick="toggleSelectAll(this)">
                             <label class="form-check-label" for="select_all">Select All</label>
                         </div>
-{#                        <div class="form-check">#}
-{#                            <input class="form-check-input" type="checkbox" id="unselect_all"#}
-{#                                   onclick="toggleUnSelectAll(this)">#}
-{#                            <label class="form-check-label" for="unselect_all">Unselect All</label>#}
-{#                        </div>#}
                     </div>
                     <div>
-                        {% set download_urls = [] %}
-                        {% for record in records %}
-                            {% set metadata = record | select_datacite_metadata %}
-                            {% if metadata and metadata.immutableResource and metadata.immutableResource.resourceDownload %}
-                                {% set _ = download_urls.append(metadata.immutableResource.resourceDownload.downloadURL ~ '/download') %}
-                            {% endif %}
-                        {% endfor %}
+
                         <button id="download-selected-btn"
                                 onclick="downloadSelectedRecords(event, this,'')"
                                 class="btn btn-outline-primary btn-action"
-                                data-download-urls='{{ download_urls | tojson | safe }}'
                                 data-records='{{ records | tojson | safe }}'
                         >
                             <img src="{{ url_for('static', filename='images/download-icon.png') }}"
@@ -274,31 +323,15 @@
                                     {% set download_url = immutable_resource.resourceDownload.downloadURL %}
 
                                     <button class="btn btn-link p-0 no-outline"
-            type="button"
-            onclick="openSingleDownloadModal('{{ download_url }}', '{{ record.doi }}', '{{ record.id }}')">
-        <img src="{{ url_for('static', filename='images/download-icon.png') }}"
-             height="15px">
-        <span class="download-loader" style="display:none;">
+                                            type="button"
+                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}')"
+                                            data-records='[{"id":"{{ record.id }}","doi":"{{ record.doi }}"}]'>
+                                        <img src="{{ url_for('static', filename='images/download-icon.png') }}"
+                                             height="15px">
+                                        <span class="download-loader" style="display:none;">
             <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
         </span>
-    </button>
-
-{#                                    <button#}
-{#                                            class="btn btn-link p-0 no-outline"#}
-{#                                    >#}
-{#                                        handleSingleRecordDownload(downloadUrl,doi,recordId)#}
-{#                                        #}
-{#                                        <a onclick="downloadSelectedRecords(event,this,'{{ record.id }}')"#}
-{#                                           data-records='{{ records | tojson | safe }}'>#}
-{#                                            <img src="{{ url_for('static', filename='images/download-icon.png') }}"#}
-{#                                                 height="15px">#}
-{#                                            <span class="download-loader" style="display:none;">#}
-{#        <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>#}
-{#    </span>#}
-{#                                        </a>#}
-{##}
-{##}
-{#                                    </button>#}
+                                    </button>
 
 
                                 {% else %}
@@ -372,100 +405,9 @@
             </div>
         </div>
 
-        <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Please provide some information before downloading.</p>
-                <form id="download-audit-form">
-                    <div class="mb-3">
-                        <label for="download-name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="download-name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="download-email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-reason" class="form-label">Organisation</label>
-                        <input type="text" class="form-control" id="organisation" required>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="disclaimer-acknowledgment"
-                                   name="disclaimer-acknowledgment" required>
-                            <label class="form-check-label" for="disclaimer-acknowledgment">
-                                <small class="text-muted">
-                                    <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                                </small>
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="submit-download-btn">
-                    <span class="submit-download-loader" style="display:none;">
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    </span>
-                    Submit and Download
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
+        {{ download_audit_modal() }}
 
     </form>
-
-    <div class="modal fade" id="download-popup" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5">Download Confirmation</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                Please provide some information before downloading.
-                <form id="download-popup-form">
-                    <div class="mb-3">
-                        <label for="download-popup-name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="download-popup-name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-popup-email" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="download-popup-email" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="download-popup-organisation" class="form-label">Organisation</label>
-                        <input type="text" class="form-control" id="download-popup-organisation" required>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="accept-terms-of-use-popup" onchange="document.getElementById('download-btn').disabled = !this.checked">
-                            <label class="form-check-label" for="accept-terms-of-use-popup">
-                                <small class="text-muted">
-                                    <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers.
-                                </small>
-                            </label>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button id="download-btn" type="button" class="btn btn-primary" disabled>
-                    Download
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endmacro %}
 
 
@@ -486,64 +428,64 @@
                 <span class="user-select-all">
                         {{- record.doi -}}
                     </span>
-                {% else %}
-                    No DOI
-                {% endif %}
-            </div>
-            {#</button>#}
+            {% else %}
+                No DOI
+            {% endif %}
+        </div>
+        {#</button>#}
+    </li>
+    {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" href="{{ config.ODP_ADMIN_URL }}/records/{{ record.id }}" target="_blank">
+                Edit
+            </a>
         </li>
-        {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
-            <li class="nav-item" role="presentation">
-                <a class="nav-link" href="{{ config.ODP_ADMIN_URL }}/records/{{ record.id }}" target="_blank">
-                    Edit
-                </a>
-            </li>
-        {% endif %}
-    </ul>
+    {% endif %}
+</ul>
 
-    <div class="tab-content p-4">
-        <div id="info" class="tab-pane fade show active" role="tabpanel">
-            {% set props = ['Title'] %}
+<div class="tab-content p-4">
+    <div id="info" class="tab-pane fade show active" role="tabpanel">
+        {% set props = ['Title'] %}
 
-            {% if iso19115_metadata and iso19115_metadata.descriptiveKeywords %}
-                {% set theme = iso19115_metadata.descriptiveKeywords |
+        {% if iso19115_metadata and iso19115_metadata.descriptiveKeywords %}
+            {% set theme = iso19115_metadata.descriptiveKeywords |
                                selectattr('keywordType', '==', 'theme') |
                                map(attribute='keyword') | first %}
-                {% if theme %}
-                    {% set props = props + ['Project'] %}
-                {% endif %}
+            {% if theme %}
+                {% set props = props + ['Project'] %}
             {% endif %}
+        {% endif %}
 
-            {% set props = props + ['Authors', 'Publisher', 'Contributors'] %}
+        {% set props = props + ['Authors', 'Publisher', 'Contributors'] %}
 
-            {% set abstract = datacite_metadata.descriptions |
+        {% set abstract = datacite_metadata.descriptions |
                               selectattr('descriptionType', '==', 'Abstract') |
                               map(attribute='description') | first %}
-            {% if abstract %}
-                {% set props = props + ['Abstract'] %}
-            {% endif %}
+        {% if abstract %}
+            {% set props = props + ['Abstract'] %}
+        {% endif %}
 
-            {% set methods = datacite_metadata.descriptions |
+        {% set methods = datacite_metadata.descriptions |
                              selectattr('descriptionType', '==', 'Methods') |
                              map(attribute='description') | first %}
-            {% if methods %}
-                {% set props = props + ['Methods'] %}
-            {% endif %}
+        {% if methods %}
+            {% set props = props + ['Methods'] %}
+        {% endif %}
 
-            {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
+        {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
 
-            {% set vertical -%}
-                {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
-                    {% set vert = iso19115_metadata.extent.verticalElement %}
-                    Max: {{ vert.maximumValue }} {{ vert.unitOfMeasure }} <br/>
-                    Min: {{ vert.minimumValue }} {{ vert.unitOfMeasure }}
-                {% endif %}
-            {%- endset %}
-            {% if vertical %}
-                {% set props = props + ['Vertical extent'] %}
-            {% endif %}
+        {% set vertical -%}
+        {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
+            {% set vert = iso19115_metadata.extent.verticalElement %}
+            Max: {{ vert.maximumValue }} {{ vert.unitOfMeasure }} <br/>
+            Min: {{ vert.minimumValue }} {{ vert.unitOfMeasure }}
+        {% endif %}
+        {%- endset %}
+        {% if vertical %}
+            {% set props = props + ['Vertical extent'] %}
+        {% endif %}
 
-            {% set props = props + ['Keywords'] %}
+        {% set props = props + ['Keywords'] %}
 
         {% set related_ids -%}
         {% if datacite_metadata.relatedIdentifiers %}
@@ -575,19 +517,19 @@
             {% set props = props + ['Related resources'] %}
         {% endif %}
 
-            {% call(prop) render_info(record, properties=props, hide_id=True) %}
-                {% if prop == 'Title' %}
-                    <strong>{{ datacite_metadata.titles[0].title }}</strong>
+        {% call(prop) render_info(record, properties=props, hide_id=True) %}
+            {% if prop == 'Title' %}
+                <strong>{{ datacite_metadata.titles[0].title }}</strong>
 
-                {% elif prop == 'Project' %}
-                    {{ theme }}
+            {% elif prop == 'Project' %}
+                {{ theme }}
 
-                {% elif prop == 'Authors' %}
-                    {% for creator in datacite_metadata.creators %}
-                        <p>{{ creator.name }}<br/>
-                            <small>{{ creator.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
-                        </p>
-                    {% endfor %}
+            {% elif prop == 'Authors' %}
+                {% for creator in datacite_metadata.creators %}
+                    <p>{{ creator.name }}<br/>
+                        <small>{{ creator.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
+                    </p>
+                {% endfor %}
 
             {% elif prop == 'Contributors' %}
                 {% for contributor in datacite_metadata.contributors %}
@@ -596,46 +538,46 @@
                     </p>
                 {% endfor %}
 
-                {% elif prop == 'Abstract' %}
-                    {{ abstract }}
+            {% elif prop == 'Abstract' %}
+                {{ abstract }}
 
-                {% elif prop == 'Methods' %}
-                    {{ methods }}
+            {% elif prop == 'Methods' %}
+                {{ methods }}
 
-                {% elif prop == 'Temporal extent' %}
-                    {% if record.temporal_start %}
-                        {{ record.temporal_start | date }}
-                        {% if record.temporal_end %}
-                            &ndash; {{ record.temporal_end | date }}
+            {% elif prop == 'Temporal extent' %}
+                {% if record.temporal_start %}
+                    {{ record.temporal_start | date }}
+                    {% if record.temporal_end %}
+                        &ndash; {{ record.temporal_end | date }}
+                    {% endif %}
+                {% endif %}
+
+            {% elif prop == 'Geographic extent' %}
+                <div id="map"></div>
+                {% for place in datacite_metadata.geoLocations | map(attribute='geoLocationPlace') %}
+                    <p class="mt-3">
+                        {{ place }}
+                    </p>
+                {% endfor %}
+                {% if N is not none and E is not none and S is not none and W is not none %}
+                    <p class="mt-3">
+                        {% if N == S and E == W %}
+                            Lat: {{ N }}<br/>
+                            Lon: {{ E }}
+                        {% else %}
+                            North: {{ N }}<br/>
+                            South: {{ S }}<br/>
+                            West: {{ W }}<br/>
+                            East: {{ E }}
                         {% endif %}
-                    {% endif %}
+                    </p>
+                {% endif %}
 
-                {% elif prop == 'Geographic extent' %}
-                    <div id="map"></div>
-                    {% for place in datacite_metadata.geoLocations | map(attribute='geoLocationPlace') %}
-                        <p class="mt-3">
-                            {{ place }}
-                        </p>
-                    {% endfor %}
-                    {% if N is not none and E is not none and S is not none and W is not none %}
-                        <p class="mt-3">
-                            {% if N == S and E == W %}
-                                Lat: {{ N }}<br/>
-                                Lon: {{ E }}
-                            {% else %}
-                                North: {{ N }}<br/>
-                                South: {{ S }}<br/>
-                                West: {{ W }}<br/>
-                                East: {{ E }}
-                            {% endif %}
-                        </p>
-                    {% endif %}
+            {% elif prop == 'Vertical extent' %}
+                {{ vertical }}
 
-                {% elif prop == 'Vertical extent' %}
-                    {{ vertical }}
-
-                {% elif prop == 'Publisher' %}
-                    {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
+            {% elif prop == 'Publisher' %}
+                {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
 
             {% elif prop == 'Keywords' %}
                 {% for keyword in record.keywords | sort %}
@@ -698,25 +640,27 @@
                     </a>{% if not loop.last %}, {% endif %}
                 {% endfor %}
 
-                {% elif prop == 'Data' %}
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ datacite_metadata.rightsList[0].rightsURI }}" target="_blank">
-                            {{ datacite_metadata.rightsList[0].rights }}
-                        </a>
-                        <div>
-                            {% if record.doi %}
-                                {{ citation_button(record) }}
-                            {% endif %}
-                            {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
-                                {{ download_button(
-                                    datacite_metadata.immutableResource.resourceDownload.downloadURL
+            {% elif prop == 'Data' %}
+                <div class="d-flex justify-content-between">
+                    <a href="{{ datacite_metadata.rightsList[0].rightsURI }}" target="_blank">
+                        {{ datacite_metadata.rightsList[0].rights }}
+                    </a>
+                    <div>
+                        {% if record.doi %}
+                            {{ citation_button(record) }}
+                        {% endif %}
+                        {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
+                            {{ download_button(
+                                    datacite_metadata.immutableResource.resourceDownload.downloadURL,
+                                    record.id,
+                                    record.doi
                                 ) }}
-                            {% endif %}
-                        </div>
+                        {% endif %}
                     </div>
+                </div>
 
-                {% elif prop == 'Related resources' %}
-                    {{ related_ids }}
+            {% elif prop == 'Related resources' %}
+                {{ related_ids }}
 
             {% endif %}
         {% endcall %}
@@ -733,8 +677,8 @@
         {% set doi = related_id.relatedIdentifier | doi %}
         {% if doi.startswith('10.15493') %}
             {{ doi | doi_title }} (<a href="{{ url_for('catalog.view', id=doi) }}">
-                {{- doi -}}
-            </a>)
+            {{- doi -}}
+        </a>)
         {% else %}
             <a href="https://doi.org/{{ doi }}" target="_blank">
                 {{ doi }}
@@ -751,58 +695,14 @@
 
 
 {% macro download_button(
-    download_url
+    download_url,
+    record_id,
+    doi=None
 ) %}
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#download-popup">
-        Download
+    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}')" data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
+        <span class="download-text">Download</span>
+        <span class="download-loader spinner-border spinner-border-sm ms-2" style="display:none;"></span>
     </button>
-
-    <div class="modal fade" id="download-popup" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Download Confirmation</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-
-                    Please provide some information before downloading.
-
-                    <form id="download-popup-form">
-                        <div class="mb-3">
-                            <label for="download-popup-name" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="download-popup-name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="download-popup-email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="download-popup-email" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="download-popup-organisation" class="form-label">Organisation</label>
-                            <input type="text" class="form-control" id="download-popup-organisation" required>
-                        </div>
-                        <div class="mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="accept-terms-of-use-popup">
-                                <label class="form-check-label" for="accept-terms-of-use-popup">
-                                    <small class="text-muted">
-                                        <strong>Data Usage Acknowledgment:</strong> These data are made available with the express understanding that any such use will properly acknowledge the originator(s) and publisher and cite the accession numbers and/or associated Digital Object Identifiers. Anyone wishing to use these data should properly cite and attribute the data providers listed as authors in the metadata provided with each dataset. It is expected that all the conditions of the data license will be strictly honoured. Use of any material herein should be properly cited using the dataset's persistent identifiers, such as accession numbers and DOIs.
-                                    </small>
-                                </label>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button id="download-btn" type="button" class="btn btn-primary" disabled
-                            onclick="handleSingleRecordDownload('{{ download_url }}', '{{ doi }}', '{{ record_id }}')">
-                        Download
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 {% endmacro %}
 
 
@@ -827,32 +727,34 @@
                 </div>
                 <div class="modal-footer">
                     <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-auto">
-                            <label for="citation-style" class="col-form-label">
-                                Style
-                            </label>
+                        <div class="row">
+                            <div class="col-auto">
+                                <label for="citation-style" class="col-form-label">
+                                    Style
+                                </label>
+                            </div>
+                            <div class="col">
+                                <select id="citation-style" class="form-control"
+                                        onchange="formatCitation('{{ record.doi }}')">
+                                    <option value="apa">APA</option>
+                                    <option value="bibtex">BibTeX</option>
+                                    <option value="chicago-author-date">Chicago</option>
+                                    <option value="elsevier-harvard">Harvard</option>
+                                    <option value="ieee">IEEE</option>
+                                    <option value="university-of-york-mla">MLA</option>
+                                    {% if ris_metadata and ris_metadata.ris %}
+                                        <option value="ris">RIS</option>
+                                    {% endif %}
+                                    <option value="vancouver">Vancouver</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button id="copy-citation-btn" type="button" class="btn btn-primary"
+                                        onclick="copyCitation()">
+                                    Copy to clipboard
+                                </button>
+                            </div>
                         </div>
-                        <div class="col">
-                            <select id="citation-style" class="form-control" onchange="formatCitation('{{ record.doi }}')">
-                                <option value="apa">APA</option>
-                                <option value="bibtex">BibTeX</option>
-                                <option value="chicago-author-date">Chicago</option>
-                                <option value="elsevier-harvard">Harvard</option>
-                                <option value="ieee">IEEE</option>
-                                <option value="university-of-york-mla">MLA</option>
-                                {% if ris_metadata and ris_metadata.ris %}
-                                    <option value="ris">RIS</option>
-                                {% endif %}
-                                <option value="vancouver">Vancouver</option>
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <button id="copy-citation-btn" type="button" class="btn btn-primary" onclick="copyCitation()">
-                                Copy to clipboard
-                            </button>
-                        </div>
-                    </div>
                     </div>
                 </div>
             </div>

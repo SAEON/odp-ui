@@ -50,10 +50,6 @@ function saveDownloadCache(name, email, organisation) {
     }
 }
 
-function clearDownloadCache() {
-    localStorage.removeItem(DOWNLOAD_CACHE_KEY);
-}
-
 function populateDownloadFormFromCache(nameFieldId, emailFieldId, organisationFieldId) {
     const cache = getDownloadCache();
     if (!cache) return;
@@ -341,16 +337,15 @@ function downloadSelectedRecords(event, buttonEl, record_id) {
     try {
         const records = JSON.parse(buttonEl.getAttribute('data-records'));
         const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
-
         if (selectedIds.length === 0) {
             alert('Please select one or more records to download.');
             return;
         }
-        const selectedRecords = records.filter(record => selectedIds.includes(record.id));
+        // const selectedRecords = records.filter(record => selectedIds.includes(record.id));
 
-        if (selectedRecords.length > 0) {
+        if (selectedIds.length > 0) {
             // Store context for the modal's submit handler
-            downloadContext.recordsToDownload = selectedRecords;
+            downloadContext.recordsToDownload = selectedIds;
             downloadContext.buttonElement = buttonEl; // Store the button
 
             // Reset form and show modal
@@ -445,12 +440,8 @@ async function _performZipDownload(buttonEl, selectedRecords, userData) {
     if (loader) loader.style.display = 'inline-block';
 
     try {
-        // Prepare record IDs (DOIs or UUIDs)
-        const recordIds = selectedRecords
-            .map(record => record.doi || record.id)
-            .filter(id => id);
 
-        if (recordIds.length === 0) {
+        if (selectedRecords.length === 0) {
             throw new Error('No valid record IDs found');
         }
 
@@ -461,7 +452,7 @@ async function _performZipDownload(buttonEl, selectedRecords, userData) {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                record_ids: recordIds,
+                record_ids: selectedRecords,
                 user_data: userData
             })
         });
@@ -530,117 +521,6 @@ function isValidEmail(email) {
     return emailRegex.test(email);
 }
 
-function updateDownloadButtonState() {
-    const downloadBtn = document.getElementById('download-btn');
-    const acknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
-
-    if (downloadBtn && acknowledgeCheckbox) {
-        downloadBtn.disabled = !acknowledgeCheckbox.checked;
-    }
-}
-
-function handleSingleRecordDownload(downloadUrl, doi) {
-    const nameInput = document.getElementById('download-popup-name');
-    const emailInput = document.getElementById('download-popup-email');
-    const organisationInput = document.getElementById('download-popup-organisation');
-    const acknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
-
-    // Validate all required fields
-    if (!nameInput.value.trim()) {
-        alert('Please enter your name.');
-        nameInput.focus();
-        return;
-    }
-
-    if (!emailInput.value.trim()) {
-        alert('Please enter your email address.');
-        emailInput.focus();
-        return;
-    }
-
-    if (!isValidEmail(emailInput.value)) {
-        alert('Please enter a valid email address.');
-        emailInput.focus();
-        return;
-    }
-
-    if (!organisationInput.value.trim()) {
-        alert('Please enter your organisation.');
-        organisationInput.focus();
-        return;
-    }
-
-    // Validate that acknowledgment checkbox is checked
-    if (!acknowledgeCheckbox || !acknowledgeCheckbox.checked) {
-        alert('Please acknowledge the data usage terms before downloading.');
-        if (acknowledgeCheckbox) acknowledgeCheckbox.focus();
-        return;
-    }
-
-    const name = nameInput.value;
-    const email = emailInput.value;
-    const organisation = organisationInput.value;
-
-    // Save to cache for future downloads
-    saveDownloadCache(name, email, organisation);
-
-    // Log audit data
-    const payload = {
-        download_url: downloadUrl,
-        file_size: null,
-        success: true,
-        name: name || null,
-        email: email || null,
-        organisation: organisation || null,
-        doi: doi || '10.15493/DEA.MIMS.15202023',
-        meta: {
-            source: 'MIMS-UI-Detail-Page',
-            download_type: 'single_record'
-        }
-    };
-
-    fetch('/catalog/download-audit', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-    }).catch(err => console.error('Audit log failed:', err));
-
-    // Perform the download
-    window.open(downloadUrl);
-
-    // Close the modal
-    const downloadModal = bootstrap.Modal.getInstance(document.getElementById('download-popup'));
-    if (downloadModal) downloadModal.hide();
-}
-
-function openSingleDownloadModal(downloadUrl, doi, recordId) {
-    // 1. Get the modal submit button
-    const submitBtn = document.getElementById('download-btn');
-
-    if (submitBtn) {
-        // 2. dynamically set the onclick to call the existing handler with THIS record's data
-        submitBtn.setAttribute('onclick', `handleSingleRecordDownload('${downloadUrl}', '${doi}', '${recordId}')`);
-
-        // 3. Reset button state
-        submitBtn.disabled = true;
-    }
-
-    // 4. Reset and populate form fields (using your existing cache function)
-    const checkbox = document.getElementById('accept-terms-of-use-popup');
-    if (checkbox) checkbox.checked = false;
-
-    populateDownloadFormFromCache('download-popup-name', 'download-popup-email', 'download-popup-organisation');
-
-    // 5. Show the modal
-    const modalEl = document.getElementById('download-popup');
-    if (modalEl) {
-        const modal = new bootstrap.Modal(modalEl);
-        modal.show();
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function () {
 
     updateButtonStates();
@@ -659,20 +539,5 @@ document.addEventListener('DOMContentLoaded', function () {
         if (submitDownloadBtn) {
             submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
         }
-    }
-
-    // Add event listener for the download popup acknowledgment checkbox
-    const downloadPopupAcknowledgeCheckbox = document.getElementById('accept-terms-of-use-popup');
-    if (downloadPopupAcknowledgeCheckbox) {
-        downloadPopupAcknowledgeCheckbox.addEventListener('change', updateDownloadButtonState);
-    }
-
-    // Add event listener for single record download modal to populate cache
-    const downloadPopupModal = document.getElementById('download-popup');
-    if (downloadPopupModal) {
-        downloadPopupModal.addEventListener('show.bs.modal', function () {
-            // Populate form with cached values when modal is about to show
-            populateDownloadFormFromCache('download-popup-name', 'download-popup-email', 'download-popup-organisation');
-        });
     }
 });

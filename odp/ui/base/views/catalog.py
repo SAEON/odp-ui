@@ -262,98 +262,6 @@ def proxy_download():
     })
 
 
-@bp.route('/format/metadata.pdf', methods=['POST'])
-def format_metadata_pdf():
-    """
-    Proxy endpoint for PDF generation.
-
-    Receives metadata from the UI and forwards it to ODP API
-    for PDF generation, avoiding CORS issues.
-
-    Request body (MIMS format):
-    [{
-        "metadata_records": [{"metadata": {...}}],
-        "keywords": [...],
-        "temporal_start": "...",
-        "temporal_end": "..."
-    }]
-    """
-    metadata = request.get_json()
-    if not metadata:
-        return jsonify({"error": "No metadata provided"}), 400
-
-    try:
-        # Extract metadata from MIMS format
-        record = metadata[0] if metadata else {}
-        metadata_records = record.get("metadata_records", [])
-
-        if not metadata_records:
-            return jsonify({"error": "No metadata records found"}), 400
-
-        # Prefer ISO19115 if available, fallback to DataCite
-        iso_record = next(
-            (mr for mr in metadata_records if mr.get("schema_id") == "SAEON.ISO19115"),
-            None
-        )
-        datacite_record = next(
-            (mr for mr in metadata_records if mr.get("schema_id") == "SAEON.DataCite4"),
-            None
-        )
-
-        raw_metadata = None
-        if iso_record:
-            raw_metadata = iso_record.get("metadata")
-        elif datacite_record:
-            raw_metadata = datacite_record.get("metadata")
-
-        if not raw_metadata:
-            return jsonify({"error": "No usable metadata found"}), 400
-
-        # Call ODP API for PDF generation (server-to-server, no CORS)
-        payload = {
-            'metadata_format': 'auto',
-            'metadata': raw_metadata,
-            'keywords': record.get('keywords', []),
-            'temporal_start': record.get('temporal_start'),
-            'temporal_end': record.get('temporal_end'),
-        }
-
-        current_app.logger.info(f"Calling ODP API for PDF generation")
-
-        # Make direct request to ODP API for PDF (binary response)
-        # The cli.post() method tries to parse JSON, but PDF is binary
-        # So we use requests directly to get the binary content
-        api_url = config.ODP.API_URL
-        response = requests.post(
-            f'{api_url}/catalog/metadata/generate-pdf',
-            json=payload,
-            timeout=30
-        )
-        response.raise_for_status()
-
-        pdf_bytes = response.content
-        current_app.logger.info(f"PDF generated successfully: {len(pdf_bytes)} bytes")
-        return Response(
-            pdf_bytes,
-            mimetype='application/pdf',
-            headers={
-                'Content-Disposition': 'attachment; filename="metadata.pdf"',
-                'Content-Length': str(len(pdf_bytes))
-            }
-        )
-
-    except Exception as e:
-        current_app.logger.error(f"PDF generation failed: {str(e)}", exc_info=True)
-        try:
-            error_data = e.response.json()
-            status_code = e.response.status_code
-        except:
-            error_data = {'error': str(e)}
-            status_code = 500
-
-        return jsonify(error_data), status_code
-
-
 @bp.route('/generate-zip-bundle', methods=['POST'])
 def generate_zip_bundle():
     """
@@ -367,7 +275,7 @@ def generate_zip_bundle():
 
     Request body:
     {
-        "record_ids": ["10.15493/ABC", "10.15493/DEF"],
+        "record_ids": ["ABC", "DEF"],
         "user_data": {
             "name": "User Name",
             "email": "user@example.com",
