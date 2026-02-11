@@ -25,56 +25,68 @@
     {{ select2_js() }}
     <script src="{{ url_for('static', filename='scripts/controls.js') }}"></script>
     <script>
-        setMap();
+        $(document).ready(() => {
+            setMap();
 
-        $(document).ready(function () {
-            $('#keywords').select2();
-            $('#instruments').select2();
+            initSelect2Fields(['keywords', 'instruments', 'eov_keywords', 'ecv_keywords']);
 
-            $(document).on('blur', 'input[id$="-orcid"]', function () {
-                const orcidInput = $(this);
-                let rawValue = orcidInput.val().trim();
-
-                if (rawValue === "") return;
-
-                // This matches the ID at the end of a string or on its own
-                const idMatch = rawValue.match(/(\d{4}-){3}\d{3}[\dX]$/);
-
-                if (idMatch) {
-                    const orcidId = idMatch[0];
-                    const fullUrl = `https://orcid.org/${orcidId}`;
-
-                    orcidInput.val(fullUrl);
-
-                    orcidInput.addClass('is-loading');
-                    const baseId = orcidInput.attr('id').replace('orcid', '');
-
-                    $.ajax({
-                        url: `/submissions/orcid/${orcidId}`,
-                        method: 'GET',
-                        success: function (data) {
-                            if (data.person?.name) {
-                                $(`#${baseId}first_name`).val(data.person.name['given-names']?.value || '').trigger('change');
-                                $(`#${baseId}last_name`).val(data.person.name['family-name']?.value || '').trigger('change');
-                            }
-                            const employment = data['activities-summary']?.employments?.['employment-summary']?.[0];
-                            if (employment) {
-                                $(`#${baseId}affiliation`).val(employment.organization.name).trigger('change');
-                            }
-                            orcidInput.removeClass('is-invalid').addClass('is-valid');
-                        },
-                        error: function() {
-                            orcidInput.addClass('is-invalid');
-                        },
-                        complete: function() {
-                            orcidInput.removeClass('is-loading');
-                        }
-                    });
-                } else {
-                    orcidInput.addClass('is-invalid');
-                }
+            $(document).on('blur', 'input[id$="-orcid"]', function() {
+                populateOrcidInfo($(this))
             });
         });
+
+        function initSelect2Fields(elementIds) {
+            elementIds.forEach(id => {
+                const $el = $(`#${id}`);
+
+                if ($el.length > 0) {
+                    $el.select2();
+                }
+            });
+        }
+
+        function populateOrcidInfo(orcidInput) {
+            let rawValue = orcidInput.val().trim();
+
+            if (rawValue === "") return;
+
+            // This matches the ID at the end of a string or on its own
+            const idMatch = rawValue.match(/(\d{4}-){3}\d{3}[\dX]$/);
+
+            if (idMatch) {
+                const orcidId = idMatch[0];
+                const fullUrl = `https://orcid.org/${orcidId}`;
+
+                orcidInput.val(fullUrl);
+
+                orcidInput.addClass('is-loading');
+                const baseId = orcidInput.attr('id').replace('orcid', '');
+
+                $.ajax({
+                    url: `/submissions/orcid/${orcidId}`,
+                    method: 'GET',
+                    success: function (data) {
+                        if (data.person?.name) {
+                            $(`#${baseId}first_name`).val(data.person.name['given-names']?.value || '').trigger('change');
+                            $(`#${baseId}last_name`).val(data.person.name['family-name']?.value || '').trigger('change');
+                        }
+                        const employment = data['activities-summary']?.employments?.['employment-summary']?.[0];
+                        if (employment) {
+                            $(`#${baseId}affiliation`).val(employment.organization.name).trigger('change');
+                        }
+                        orcidInput.removeClass('is-invalid').addClass('is-valid');
+                    },
+                    error: function() {
+                        orcidInput.addClass('is-invalid');
+                    },
+                    complete: function() {
+                        orcidInput.removeClass('is-loading');
+                    }
+                });
+            } else {
+                orcidInput.addClass('is-invalid');
+            }
+        }
 
         function setMap() {
             $('#map').height('300px');

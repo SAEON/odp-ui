@@ -115,11 +115,6 @@
     {% else %}
         <a href="{{ url_for(button.endpoint, id=button.object_id) }}"
            class="btn btn-
-
-
-
-
-
                    {{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action {{ 'disabled' if not button.enabled }}">
             {{ button.label }}
         </a>
@@ -324,7 +319,9 @@
         {{ field.description }}
     {% else %}
         <div class="mt-4">
-            {{ field.label(class='form-label') }}
+            {% if not field.type == 'HiddenField' %}
+                {{ field.label(class='form-label') }}
+            {% endif %}
             {{ render_field_input(field, obj) }}
         </div>
     {% endif %}
