@@ -280,18 +280,6 @@ function goToSelectedRecordList(event, records) {
     window.location.href = redirectUrl;
 }
 
-function selectedRecordListLink(event) {
-    event.preventDefault();
-    const selectedIds = getSelectedIds();
-    const redirectUrl = buildRedirectUrl(selectedIds);
-    const linkOutputElement = document.getElementById('record-subset-link-text') || document.getElementById('record-subsetilink');
-    if (linkOutputElement) {
-        linkOutputElement.innerText = redirectUrl;
-    } else {
-        console.error("Could not find element to display shareable link");
-    }
-}
-
 function updateButtonStates() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
     const unselectAllCheckbox = document.getElementById('unselect_all');
@@ -313,35 +301,22 @@ function toggleSelectAll(selectAllCheckbox) {
     updateButtonStates();
 }
 
-function toggleUnSelectAll() {
-    const checkboxes = document.querySelectorAll('input[name="check_item"]');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    const selectAllCheckbox = document.getElementById('select_all');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.checked = false;
-    }
-    updateButtonStates();
-}
 
 function handleShareClick(buttonElement) {
     const cb = buttonElement.previousElementSibling;   // first child is the <input>
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-function downloadSelectedRecords(event, buttonEl, record_id) {
+function downloadSelectedRecords(event, buttonEl, recordId) {
     event.preventDefault();
     event.stopPropagation();
 
     try {
-        const records = JSON.parse(buttonEl.getAttribute('data-records'));
-        const selectedIds = record_id !== '' ? [record_id] : getSelectedIds();
+        const selectedIds = recordId !== '' ? [recordId] : getSelectedIds();
         if (selectedIds.length === 0) {
             alert('Please select one or more records to download.');
             return;
         }
-        // const selectedRecords = records.filter(record => selectedIds.includes(record.id));
 
         if (selectedIds.length > 0) {
             // Store context for the modal's submit handler
@@ -350,6 +325,16 @@ function downloadSelectedRecords(event, buttonEl, record_id) {
 
             // Reset form and show modal
             if (downloadAuditForm) downloadAuditForm.reset();
+
+            const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
+
+            if (disclaimerCheckbox) {
+                disclaimerCheckbox.checked = false;
+            }
+
+            if (submitDownloadBtn) {
+                submitDownloadBtn.disabled = true;
+            }
 
             // Populate form with cached values if available
             populateDownloadFormFromCache('download-name', 'download-email', 'organisation');
@@ -396,13 +381,6 @@ async function handleSubmitAndPerformDownload(event) {
     if (!organisationInput.value.trim()) {
         alert('Please enter your organisation.');
         organisationInput.focus();
-        return;
-    }
-
-    // Check if disclaimer checkbox is checked
-    if (!disclaimerCheckbox || !disclaimerCheckbox.checked) {
-        alert('Please acknowledge the data usage terms before downloading.');
-        if (disclaimerCheckbox) disclaimerCheckbox.focus();
         return;
     }
 
@@ -536,8 +514,17 @@ document.addEventListener('DOMContentLoaded', function () {
         submitDownloadLoader = submitDownloadBtn.querySelector('.submit-download-loader');
         downloadAuditForm = document.getElementById('download-audit-form');
 
+        const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
+        if (disclaimerCheckbox && submitDownloadBtn) {
+            disclaimerCheckbox.addEventListener('change', function() {
+                submitDownloadBtn.disabled = !this.checked;
+            });
+        }
+
         if (submitDownloadBtn) {
             submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
         }
     }
+
+
 });
