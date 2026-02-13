@@ -50,9 +50,9 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" id="submit-download-btn">
-                <span class="submit-download-loader" style="display:none;">
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                </span>
+                        <span class="submit-download-loader" style="display:none;">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        </span>
                         Submit and Download
                     </button>
                 </div>
@@ -266,9 +266,7 @@
 
                         <button id="download-selected-btn"
                                 onclick="downloadSelectedRecords(event, this,'')"
-                                class="btn btn-outline-primary btn-action"
-                                data-records='{{ records | tojson | safe }}'
-                        >
+                                class="btn btn-outline-primary btn-action">
                             <img src="{{ url_for('static', filename='images/download-icon.png') }}"
                                  height="15px" class="me-1">
                             <span class="download-loader" style="display:none;">
@@ -286,7 +284,6 @@
             {% set abstract = metadata.descriptions | selectattr('descriptionType', '==', 'Abstract') | map(attribute='description') | first %}
 
             {% set immutable_resource = metadata.immutableResource if metadata.immutableResource is defined else None %}
-
 
             <div class="card mb-4">
                 <div class="card-header">
@@ -324,13 +321,11 @@
 
                                     <button class="btn btn-link p-0 no-outline"
                                             type="button"
-                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}')"
-                                            data-records='[{"id":"{{ record.id }}","doi":"{{ record.doi }}"}]'>
-                                        <img src="{{ url_for('static', filename='images/download-icon.png') }}"
-                                             height="15px">
+                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}')">
+                                        <img src="{{ url_for('static', filename='images/download-icon.png') }}" height="15px">
                                         <span class="download-loader" style="display:none;">
-            <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
-        </span>
+                                            <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+                                        </span>
                                     </button>
 
 
@@ -426,8 +421,8 @@
             {% if record.doi %}
                 DOI:
                 <span class="user-select-all">
-                        {{- record.doi -}}
-                    </span>
+                    {{- record.doi -}}
+                </span>
             {% else %}
                 No DOI
             {% endif %}
@@ -699,7 +694,8 @@
     record_id,
     doi=None
 ) %}
-    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}')" data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
+    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}')"
+            data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
         <span class="download-text">Download</span>
         <span class="download-loader spinner-border spinner-border-sm ms-2" style="display:none;"></span>
     </button>

@@ -4,17 +4,12 @@ from random import randint
 from typing import Optional
 
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for, Response, \
-    jsonify, send_file
-from io import BytesIO
-from datetime import datetime
+    jsonify
 
-from odp.config import config
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
 from odp.ui.base import api, cli
 from odp.ui.base.forms import SearchForm
-
-import requests
 
 bp = Blueprint(
     'catalog', __name__,
@@ -45,6 +40,7 @@ def doi_title(doi: str) -> str:
         pass
 
     return ''
+
 
 def _select_metadata(record: dict, schema_id: ODPMetadataSchema) -> Optional[dict]:
     return next(
@@ -198,7 +194,7 @@ def view(id):
             # Facets come as list of tuples: [(value, count), (value, count), ...]
             # Extract just the values (first element of each tuple)
             facet_values = {facet: [val[0] if isinstance(val, (list, tuple)) else val for val in vals]
-                          for facet, vals in search_result['facets'].items()}
+                            for facet, vals in search_result['facets'].items()}
             current_app.logger.info(f"Fetched facet_values: {facet_values}")
         else:
             current_app.logger.warning(f"No facets in search_result: {search_result}")
@@ -234,15 +230,19 @@ def sitemap():
 def subset_record_list():
     catalog_id = current_app.config['CATALOG_ID']
     record_ids = request.args.getlist('record_id_or_doi_list')
-    record_ids_query = '&record_id_or_doi_list='.join(record_ids)
-    # Prepend the first parameter
-    record_ids_query = f"record_id_or_doi_list={record_ids_query}"
 
-    # Add page and size on the query paramenters &page=1&size=50
-    page = 1  # request.args.getlist('page')[0]
+    # Retrieve page and size from request parameters, defaulting if not present
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 50, type=int)
 
-    size = 5  # request.args.getlist('size')[0]
-    catalog_record_list = cli.get(f'/catalog/{catalog_id}/subset?{record_ids_query}&page={page}&size={size}')
+    # Pass parameters as keyword arguments to handle encoding automatically
+    catalog_record_list = cli.get(
+        f'/catalog/{catalog_id}/subset',
+        record_id_or_doi_list=record_ids,
+        page=page,
+        size=size
+    )
+
     client_id = api.client_id.split('.')[0]
 
     return render_template(
@@ -250,17 +250,6 @@ def subset_record_list():
         catalog_record_list=catalog_record_list,
         app_name=client_id
     )
-
-
-@bp.route('/proxy-download')
-def proxy_download():
-    url = request.args.get('url')
-    r = requests.get(url)
-    return Response(r.content, headers={
-        'Content-Type': r.headers.get('Content-Type', 'application/octet-stream'),
-        'Access-Control-Allow-Origin': '*'
-    })
-
 
 @bp.route('/generate-zip-bundle', methods=['POST'])
 def generate_zip_bundle():
