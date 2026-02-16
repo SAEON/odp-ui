@@ -8,7 +8,7 @@
                 <h2>{{ submission.data['title'] }}</h2>
                 <div>
                     <div class="mt-4">
-                        {% if not submission.status == 'editing' %}
+                        {% if not buttons_enabled %}
                             <div class="alert alert-dismissible alert-info mt-2">
                                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                                 <strong>Note!</strong> This submission has been submitted to the curation team at SAEON.
@@ -17,7 +17,7 @@
                             </div>
                         {% endif %}
                         Status: <span
-                            class="badge bg-{{ 'info' if submission.status == 'editing' else 'success' }}">{{ submission.status }}</span>
+                            class="badge bg-{{ 'info' if buttons_enabled else 'success' }}">{{ submission.status }}</span>
                     </div>
                 </div>
 
@@ -27,7 +27,7 @@
                         <input type="text" class="form-control" placeholder="{{ submission.dataset_file_name }}"
                                disabled="">
                         <a href="{{ url_for('.upload', id=submission.id) }}"
-                           class="btn btn-primary {{ 'disabled' if not submission.status == 'editing' }}">
+                           class="btn btn-primary {{ 'disabled' if not buttons_enabled }}">
                             Upload/Change Dataset
                         </a>
                     </div>
@@ -35,12 +35,12 @@
 
                 <div class="d-flex justify-content-between mt-4">
                     <a href="{{ url_for('.edit', id=submission.id) }}"
-                       class="btn btn-outline-primary btn-action {{ 'disabled' if not submission.status == 'editing' }}"
+                       class="btn btn-outline-primary btn-action {{ 'disabled' if not buttons_enabled }}"
                     >
                         Edit Metadata
                     </a>
                     <a href="{{ url_for('.submit', id=submission.id) }}"
-                       class="btn btn-outline-success btn-action {{ 'disabled' if not submission.status == 'editing' }}"
+                       class="btn btn-outline-success btn-action {{ 'disabled' if not buttons_enabled }}"
                        data-toggle="tooltip" data-placement="bottom"
                        title="Submit the data to SAEON for curation and publication. Your submission cannot be edited after this"
                     >
@@ -50,7 +50,7 @@
                         <button type="submit"
                                 class="btn btn-outline-danger btn-action"
                                 onclick="return confirm('Are you sure you want to delete this Submission? This cannot be undone')"
-                                {{ 'disabled' if not submission.status == 'editing' }}>
+                                {{ 'disabled' if not buttons_enabled }}>
                             Delete Submission
                         </button>
                     </form>
