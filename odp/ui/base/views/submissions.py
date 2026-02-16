@@ -3,11 +3,12 @@ from pathlib import Path
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user
 
-from odp.lib.client import ODPAPIError
 from odp.const import ODPScope
+from odp.const.db import SubmissionStatus
+from odp.lib.client import ODPAPIError
 from odp.ui.base import api, cli
 from odp.ui.base.forms import SubmissionForm, SubmissionDataUploadForm
-from odp.ui.base.templates import create_btn, delete_btn, edit_btn
+from odp.ui.base.templates import create_btn
 from odp.ui.base.views import utils
 
 bp = Blueprint(
@@ -48,9 +49,12 @@ def detail(id):
 
     submission = cli.get(f'/submission/{id}', user_id=current_user.id)
 
+    buttons_enabled = (submission['status'] == SubmissionStatus.in_progress)
+
     return render_template(
         'submission_detail.html',
-        submission=submission
+        submission=submission,
+        buttons_enabled=buttons_enabled,
     )
 
 

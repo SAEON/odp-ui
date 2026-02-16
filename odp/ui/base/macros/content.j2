@@ -108,14 +108,15 @@
     {% if button.prompt %}
         <form action="{{ url_for(button.endpoint, id=button.object_id) }}" method="post">
             <button type="submit" class="btn btn-{{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action"
-                    onclick="return confirm('{{ button.prompt % button.prompt_args }}')" {{ 'disabled' if not button.enabled }}>
+                    onclick="return confirm('{{ button.prompt % button.prompt_args }}')"
+                    {{ 'disabled' if not button.enabled }}>
                 {{ button.label }}
             </button>
         </form>
     {% else %}
         <a href="{{ url_for(button.endpoint, id=button.object_id) }}"
-           class="btn btn-
-                   {{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action {{ 'disabled' if not button.enabled }}">
+           class="btn btn-{{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action
+            {{ 'disabled' if not button.enabled }}">
             {{ button.label }}
         </a>
     {% endif %}

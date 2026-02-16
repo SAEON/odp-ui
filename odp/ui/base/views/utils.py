@@ -110,8 +110,11 @@ def get_orcid_record(orcid_id: str, bearer_token: str):
 
 def clean_submission_data(submission_form_data: dict) -> dict:
     data = dict(submission_form_data)
+
+    # Dates need to be serialised
     data['date_range']['start_date'] = str(submission_form_data['date_range']['start_date'])
     data['date_range']['end_date'] = str(submission_form_data['date_range']['end_date'])
+    data['publication_year'] = str(submission_form_data['publication_year'])
 
     cleaned_data = remove_csrf_tokens(data)
 
