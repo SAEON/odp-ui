@@ -9,7 +9,7 @@ from flask import Blueprint, abort, current_app, make_response, redirect, render
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
 from odp.ui.base import api, cli
-from odp.ui.base.forms import SearchForm
+from odp.ui.base.forms import SearchForm,DownloadAuditForm
 
 bp = Blueprint(
     'catalog', __name__,
@@ -17,7 +17,7 @@ bp = Blueprint(
 )
 
 client_id = api.client_id.split('.')[0]
-
+BULK_DOWNLOAD_CLIENTS = ['MIMS']
 
 @bp.app_template_filter()
 def doi_title(doi: str) -> str:
@@ -75,6 +75,27 @@ def select_ris_metadata(record: dict) -> Optional[dict]:
     return _select_metadata(record, ODPMetadataSchema.RIS_CITATION)
 
 
+def _format_facets(facets_dict: dict) -> dict:
+    """
+    Standardizes facet names for display and removes internal-only facets.
+
+    """
+    name_map = {
+        'EOV': 'Essential Ocean Variables',
+        'EBV': 'Essential Biodiversity Variables',
+        'SDG': 'SDG Variables',
+    }
+
+    exclude = {'Keyword', 'SDG Variables'}
+
+    formatted = {}
+    for key, value in facets_dict.items():
+        display_name = name_map.get(key, key)
+        if display_name not in exclude:
+            formatted[display_name] = value
+
+    return formatted
+
 @bp.route('/')
 @cli.view()
 def index():
@@ -121,35 +142,20 @@ def index():
         size=25,
     )
 
-    # Rename facet titles for display and hide Keyword facet from sidebar
     if result and isinstance(result, dict) and 'facets' in result:
-        if 'EOV' in result['facets']:
-            result['facets']['Essential Ocean Variables'] = result['facets'].pop('EOV')
-        if 'EBV' in result['facets']:
-            result['facets']['Essential Biodiversity Variables'] = result['facets'].pop('EBV')
-        if 'SDG' in result['facets']:
-            result['facets']['SDG Variables'] = result['facets'].pop('SDG')
-        # Hide Keyword facet from sidebar (but keep it for filtering via URLs)
-        result['facets'].pop('Keyword', None)
-        result['facets'].pop('SDG Variables', None)
+        result['facets'] = _format_facets(result['facets'])
 
-    # Rename facet field names for display and hide Keyword facet from sidebar
-    if 'EOV' in facet_fields:
-        facet_fields['Essential Ocean Variables'] = facet_fields.pop('EOV')
-    if 'EBV' in facet_fields:
-        facet_fields['Essential Biodiversity Variables'] = facet_fields.pop('EBV')
-    if 'SDG' in facet_fields:
-        facet_fields['SDG Variables'] = facet_fields.pop('SDG')
-    # Hide Keyword facet from sidebar display (keep in API for URL-based filtering)
-    facet_fields.pop('Keyword', None)
-    facet_fields.pop('SDG Variables', None)
+    facet_fields = _format_facets(facet_fields)
+
+    show_bulk_download = client_id in BULK_DOWNLOAD_CLIENTS
 
     return render_template(
         'catalog_index.html',
         form=SearchForm(request.args),
+        audit_form=DownloadAuditForm(),
         result=result,
         facet_fields=facet_fields,
-        app_name=client_id
+        show_bulk_download_options=show_bulk_download
     )
 
 
@@ -205,7 +211,8 @@ def view(id):
         'catalog_record.html',
         record=record,
         facet_values=facet_values,
-        app_name=client_id
+        audit_form=DownloadAuditForm(),
+        show_bulk_download_options=(client_id in BULK_DOWNLOAD_CLIENTS)
     )
 
 
@@ -245,10 +252,12 @@ def subset_record_list():
 
     client_id = api.client_id.split('.')[0]
 
+
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
-        app_name=client_id
+        audit_form=DownloadAuditForm(),
+        show_bulk_download_options=(client_id in BULK_DOWNLOAD_CLIENTS)
     )
 
 @bp.route('/generate-zip-bundle', methods=['POST'])
@@ -310,22 +319,19 @@ def download_audit():
     Proxy endpoint to receive an audit log from the UI
     and forward it to the main download audit API.
     """
-    payload = request.json
-    if not payload:
-        return jsonify({'error': 'No JSON payload received'}), 400
-
-    try:
-        # cli.post() returns parsed JSON response, already handled errors
-        response_data = cli.post('/download/audit', payload)
-        return jsonify(response_data), 201
-
-    except Exception as e:
-        current_app.logger.error(f"Download audit failed: {str(e)}", exc_info=True)
+    form = DownloadAuditForm(request.form)
+    if form.validate():
+        payload = {
+            'name': form.name.data,
+            'email': form.email.data,
+            'organisation': form.organisation.data,
+        }
         try:
-            error_data = e.response.json()
-            status_code = e.response.status_code
-        except:
-            error_data = {'error': str(e)}
-            status_code = 500
+            response_data = cli.post('/download/audit', payload)
+            return jsonify({'success': True, 'data': response_data}), 201
+        except Exception as e:
+            current_app.logger.error(f"Download audit failed: {str(e)}")
+            return jsonify({'error': 'Server error'}), 500
 
-        return jsonify(error_data), status_code
+        # If validation fails, return the errors as JSON for the UI to display
+    return jsonify({'success': False, 'errors': form.errors}), 400

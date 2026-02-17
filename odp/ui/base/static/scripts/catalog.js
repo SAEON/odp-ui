@@ -9,11 +9,9 @@ let submitDownloadLoader;
 let downloadAuditForm;
 
 let downloadContext = {
-    recordsToDownload: [],
-    buttonElement: null
+    recordsToDownload: [], buttonElement: null
 };
 
-// Cache management for download form details
 const DOWNLOAD_CACHE_KEY = 'mims_download_cache';
 const CACHE_EXPIRY_DAYS = 30;
 
@@ -38,10 +36,7 @@ function getDownloadCache() {
 function saveDownloadCache(name, email, organisation) {
     try {
         const cacheData = {
-            name: name,
-            email: email,
-            organisation: organisation,
-            timestamp: Date.now()
+            name: name, email: email, organisation: organisation, timestamp: Date.now()
         };
         localStorage.setItem(DOWNLOAD_CACHE_KEY, JSON.stringify(cacheData));
     } catch (e) {
@@ -76,19 +71,13 @@ function _initMap(n, e, s, w) {
         lon = (e + w) / 2;
     }
     const map = L.map('map', {
-        center: [lat, lon],
-        zoom: 3,
-        gestureHandling: true,
-        gestureHandlingOptions: {
+        center: [lat, lon], zoom: 3, gestureHandling: true, gestureHandlingOptions: {
             duration: 1500
         }
     });
-    L.tileLayer.provider(
-        'Esri.WorldStreetMap'
-    ).addTo(map);
+    L.tileLayer.provider('Esri.WorldStreetMap').addTo(map);
     L.control.scale({
-        metric: true,
-        imperial: false
+        metric: true, imperial: false
     }).addTo(map);
 
     return map;
@@ -106,8 +95,7 @@ function createExtentMap(n, e, s, w) {
             color: boxColor
         }).addTo(map);
         map.fitBounds(bounds, {
-            animate: false,
-            maxZoom: 9
+            animate: false, maxZoom: 9
         });
     }
 }
@@ -124,13 +112,8 @@ function createFilterMap() {
     const drawnItems = new L.FeatureGroup();
     const drawControl = new L.Control.Draw({
         draw: {
-            polyline: false,
-            polygon: false,
-            marker: false,
-            circle: false,
-            circlemarker: false
-        },
-        edit: {
+            polyline: false, polygon: false, marker: false, circle: false, circlemarker: false
+        }, edit: {
             featureGroup: drawnItems
         }
     });
@@ -144,8 +127,7 @@ function createFilterMap() {
         });
         drawnItems.addLayer(box);
         map.fitBounds(bounds, {
-            animate: false,
-            maxZoom: 9
+            animate: false, maxZoom: 9
         });
     }
 
@@ -222,12 +204,9 @@ function formatCitation(doi) {
         localStorage.setItem('citation-style', style);
     } else {
         $.ajax({
-            url: `https://doi.org/${doi}`,
-            dataType: 'text',
-            headers: {
+            url: `https://doi.org/${doi}`, dataType: 'text', headers: {
                 Accept: `text/x-bibliography; locale=en-GB; style=${style}`
-            },
-            success: function (result) {
+            }, success: function (result) {
                 $('#citation').html(result);
                 localStorage.setItem('citation-style', style);
             }
@@ -235,20 +214,11 @@ function formatCitation(doi) {
     }
 }
 
-function selectDataciteMetadata(record) {
-    if (!record || !record.metadata_records) {
-        return null;
-    }
-    const metadataRecord = record.metadata_records.find(mr => mr.schema_id === "SAEON.DataCite4");
-    return metadataRecord ? metadataRecord.metadata : null;
-}
-
 function copyCitation() {
     const text = $('#citation').text();
     navigator.clipboard.writeText(text).then(function () {
         const tooltip = new bootstrap.Tooltip($('#copy-citation-btn'), {
-            title: 'Copied!',
-            trigger: 'manual'
+            title: 'Copied!', trigger: 'manual'
         });
         tooltip.show();
         setTimeout(function () {
@@ -299,7 +269,6 @@ function toggleSelectAll(selectAllCheckbox) {
     });
     updateButtonStates();
 }
-
 
 function handleShareClick(buttonElement) {
     const cb = buttonElement.previousElementSibling;   // first child is the <input>
@@ -356,32 +325,6 @@ async function handleSubmitAndPerformDownload(event) {
     const nameInput = document.getElementById('download-name');
     const emailInput = document.getElementById('download-email');
     const organisationInput = document.getElementById('organisation');
-    const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
-
-    // Validate all required fields
-    if (!nameInput.value.trim()) {
-        alert('Please enter your name.');
-        nameInput.focus();
-        return;
-    }
-
-    if (!emailInput.value.trim()) {
-        alert('Please enter your email address.');
-        emailInput.focus();
-        return;
-    }
-
-    if (!isValidEmail(emailInput.value)) {
-        alert('Please enter a valid email address.');
-        emailInput.focus();
-        return;
-    }
-
-    if (!organisationInput.value.trim()) {
-        alert('Please enter your organisation.');
-        organisationInput.focus();
-        return;
-    }
 
     submitDownloadBtn.disabled = true;
     submitDownloadLoader.style.display = 'inline-block';
@@ -391,24 +334,17 @@ async function handleSubmitAndPerformDownload(event) {
 
     // Perform ZIP download with user data (server handles audit logging automatically)
     const userData = {
-        name: nameInput.value.trim(),
-        email: emailInput.value.trim(),
-        organisation: organisationInput.value.trim()
+        name: nameInput.value.trim(), email: emailInput.value.trim(), organisation: organisationInput.value.trim()
     };
 
-    await _performZipDownload(
-        downloadContext.buttonElement,
-        downloadContext.recordsToDownload,
-        userData
-    );
+    await _performZipDownload(downloadContext.buttonElement, downloadContext.recordsToDownload, userData);
 
     submitDownloadBtn.disabled = false;
     submitDownloadLoader.style.display = 'none';
     downloadModalInstance.hide();
 
     downloadContext = {
-        recordsToDownload: [],
-        buttonElement: null
+        recordsToDownload: [], buttonElement: null
     };
 }
 
@@ -424,13 +360,10 @@ async function _performZipDownload(buttonEl, selectedRecords, userData) {
 
         // Call server-side ZIP generation endpoint
         const response = await fetch('/catalog/generate-zip-bundle', {
-            method: 'POST',
-            headers: {
+            method: 'POST', headers: {
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                record_ids: selectedRecords,
-                user_data: userData
+            }, body: JSON.stringify({
+                record_ids: selectedRecords, user_data: userData
             })
         });
 
@@ -492,38 +425,40 @@ function copyToClipboard(elementSelector) {
     }
 }
 
-function isValidEmail(email) {
-    // Regular expression for email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+function initCatalogUI() {
+    initDownloadCheckboxes();
+    initDownloadModal();
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-
-    updateButtonStates();
+function initDownloadCheckboxes() {
     const itemCheckboxes = document.querySelectorAll('input[name="check_item"]');
-    itemCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateButtonStates);
-    });
+    if (itemCheckboxes.length > 0) {
+        updateButtonStates();
+        itemCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateButtonStates);
+        });
+    }
+}
 
+function initDownloadModal() {
     downloadModalElement = document.getElementById('download-audit-modal');
-    if (downloadModalElement) {
-        downloadModalInstance = new bootstrap.Modal(downloadModalElement);
-        submitDownloadBtn = document.getElementById('submit-download-btn');
-        submitDownloadLoader = submitDownloadBtn.querySelector('.submit-download-loader');
-        downloadAuditForm = document.getElementById('download-audit-form');
+    if (!downloadModalElement) return;
 
-        const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
-        if (disclaimerCheckbox && submitDownloadBtn) {
-            disclaimerCheckbox.addEventListener('change', function() {
-                submitDownloadBtn.disabled = !this.checked;
-            });
-        }
+    downloadModalInstance = new bootstrap.Modal(downloadModalElement);
+    submitDownloadBtn = document.getElementById('submit-download-btn');
+    submitDownloadLoader = submitDownloadBtn?.querySelector('.submit-download-loader');
+    downloadAuditForm = document.getElementById('download-audit-form');
 
-        if (submitDownloadBtn) {
-            submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
-        }
+    const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
+    if (disclaimerCheckbox && submitDownloadBtn) {
+        disclaimerCheckbox.addEventListener('change', function () {
+            submitDownloadBtn.disabled = !this.checked;
+        });
     }
 
+    if (submitDownloadBtn) {
+        submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
+    }
+}
 
-});
+document.addEventListener('DOMContentLoaded', initCatalogUI);

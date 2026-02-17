@@ -29,7 +29,7 @@
                 </div>
                 {{ pagination }}
                 <div class="mb-5">
-                    {{ result_list(result['items'],app_name) }}
+                    {{ result_list(result['items'], show_bulk_download_options,audit_form) }}
                 </div>
                 {% if result.total > 0 %}
                 {{ pagination }}
