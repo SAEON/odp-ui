@@ -144,20 +144,10 @@ class ContributorForm(CreatorForm):
     ])
     email = StringField(label='Email')
 
-    def validate(self, extra_validators=None):
-        """
-        Validation to check if email is present when 'ContactPerson' is selected.
-        """
-        if not super().validate(extra_validators):
-            return False
-
+    def validate_email(self, field):
         if self.contributor_type.data == 'ContactPerson':
-            if not self.email.data or not self.email.data.strip():
-                msg = "Email is required when 'Contact Person' is selected."
-                self.email.errors.append(msg)
-                return False
-
-        return True
+            if not field.data or not field.data.strip():
+                raise ValidationError("Email is required when 'Contact Person' is selected.")
 
 
 class GeoLocationBoxForm(BaseForm):
@@ -174,6 +164,10 @@ class LicenseForm(BaseForm):
         'Embargo'
     ])
     embargo_reason = StringField(label='Embargo Reason')
+
+    def validate_embargo_reason(self, field):
+        if self.license.data == 'Embargo' and not field.data.strip():
+            raise ValidationError('An embargo reason is required when the "Embargo" license is selected.')
 
 
 class DateRangeForm(BaseForm):
@@ -231,14 +225,25 @@ class VerticalExtentForm(BaseForm):
 
 
 class SubmissionForm(BaseForm):
-    title = StringField(label='Title', description='Title of the data submission')
-    abstract = TextAreaField(label='Description: Abstract', description='Description of the data submission')
-    methods = TextAreaField(label='Description: Methods',
-                            description='Detailed provenance on how the dataset was generated including methods applied')
-    instruments = SelectMultipleField(label='Instruments')
-    keywords = SelectMultipleField(label='Keywords')
-    creators = FieldList(FormField(CreatorForm), label='Creators', min_entries=1,
-                         description='The main researchers or organisations involved in producing the data submission')
+    title = StringField(label='Title', description='Title of the data submission', validators=[data_required()])
+    abstract = TextAreaField(
+        label='Description: Abstract',
+        description='Description of the data submission',
+        validators=[data_required()]
+    )
+    methods = TextAreaField(
+        label='Description: Methods',
+        description='Detailed provenance on how the dataset was generated including methods applied',
+        validators=[data_required()]
+    )
+    instruments = SelectMultipleField(label='Instruments', validators=[data_required()])
+    keywords = SelectMultipleField(label='Keywords', validators=[data_required()])
+    creators = FieldList(
+        FormField(CreatorForm),
+        label='Creators',
+        min_entries=1,
+        description='The main researchers or organisations involved in producing the data submission'
+    )
     contributors = FieldList(
         FormField(ContributorForm),
         label='Contributors',

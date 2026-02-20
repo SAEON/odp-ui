@@ -131,8 +131,9 @@ def edit(id):
     utils.populate_keywords_choices(form.keywords)
     utils.populate_instruments_choices(form.instruments)
 
-    form.keywords.data = submission_data.get('keywords')
-    form.instruments.data = submission_data.get('instruments')
+    if request.method == 'GET':
+        form.keywords.data = submission_data.get('keywords')
+        form.instruments.data = submission_data.get('instruments')
 
     if request.method == 'POST' and form.validate():
         cleaned_data = utils.clean_submission_data(form.data)
