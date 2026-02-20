@@ -116,7 +116,8 @@ def clean_submission_data(submission_form_data: dict) -> dict:
     # Dates need to be serialised
     data['date_range']['start_date'] = str(submission_form_data['date_range']['start_date'])
     data['date_range']['end_date'] = str(submission_form_data['date_range']['end_date'])
-    data['publication_year'] = str(submission_form_data['publication_year'])
+    if 'publication_year' in data:
+        data['publication_year'] = str(submission_form_data['publication_year'])
 
     cleaned_data = remove_csrf_tokens(data)
 
