@@ -13,6 +13,10 @@ def populate_instruments_choices(field):
     field.choices = get_keywords('instruments')
 
 
+def populate_location_choices(field):
+    field.choices = get_keywords('location_keywords')
+
+
 def get_keywords(keyword_type):
     keyword_response = requests.get(f'{KEYWORDS_URL}{keyword_type}')
     keywords = keyword_response.json()
@@ -20,7 +24,7 @@ def get_keywords(keyword_type):
 
     clean_options = sorted(list(set([
         v for v in extracted_options if v != 'NOT APPLICABLE'
-    ])), key=lambda x: x[1])
+    ])))
 
     return clean_options
 

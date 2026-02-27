@@ -295,16 +295,22 @@
     <div class="card subform-wrapper p-3">
         {{ subform.csrf_token }}
         {% for field in subform if 'csrf_token' not in field.id %}
+
+            {% set label_classes = [] %}
+            {% if field.flags.required %}
+                {% set label_classes = label_classes + ['required'] %}
+            {% endif %}
+
             <div class="row subform-row">
                 {% if field.type == 'MapField' %}
-                    {{ field.label }}
+                    {{ field.label(class=label_classes|join(' ')) }}
                     <div id="map"></div>
                     {{ field.description }}
                 {% else %}
-                    <div class="col-2">
-                        {{ field.label }}
+                    <div class="col-3">
+                        {{ field.label(class=label_classes|join(' ')) }}
                     </div>
-                    <div class="col-10">
+                    <div class="col-9">
                         {{ render_field_input(field) }}
                     </div>
                 {% endif %}
@@ -314,6 +320,10 @@
 {% endmacro %}
 
 {% macro render_field(field, obj) %}
+    {% set label_classes = ['form-label'] %}
+    {% if field.flags.required %}
+        {% set label_classes = label_classes + ['required'] %}
+    {% endif %}
     {% if field.type == 'MapField' %}
         {{ field.label }}
         <div id="map"></div>
@@ -321,7 +331,7 @@
     {% else %}
         <div class="mt-4">
             {% if not field.type == 'HiddenField' %}
-                {{ field.label(class='form-label') }}
+                {{ field.label(class=label_classes|join(' ')) }}
             {% endif %}
             {{ render_field_input(field, obj) }}
         </div>

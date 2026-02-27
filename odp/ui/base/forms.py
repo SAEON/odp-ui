@@ -89,7 +89,7 @@ class CreatorForm(BaseForm):
     orcid = StringField(label='ORCID')
     first_name = StringField(label='First Name', validators=[data_required()])
     last_name = StringField(label='Last Name', validators=[data_required()])
-    affiliation = StringField(label='Affiliation')
+    affiliation = StringField(label='Affiliation', validators=[data_required()])
 
 
 class ContributorForm(CreatorForm):
@@ -115,7 +115,6 @@ class ContributorForm(CreatorForm):
         ('Supervisor', 'Supervisor'),
         ('WorkPackageLeader', 'Work Package Leader')
     ])
-    email = StringField(label='Email')
 
     def validate_email(self, field):
         if self.contributor_type.data == 'ContactPerson':
@@ -123,18 +122,34 @@ class ContributorForm(CreatorForm):
                 raise ValidationError("Email is required when 'Contact Person' is selected.")
 
 
-class GeoLocationBoxForm(BaseForm):
-    map = MapField(label='Draw bounding box')
-    east_bound_longitude = FloatField(label='East Bound Longitude', validators=[data_required()])
-    north_bound_latitude = FloatField(label='North Bound Latitude', validators=[data_required()])
-    south_bound_latitude = FloatField(label='South Bound Latitude', validators=[data_required()])
-    west_bound_longitude = FloatField(label='West Bound Longitude', validators=[data_required()])
+class GeographicExtentForm(BaseForm):
+    map = MapField(label='Draw bounding box or choose point')
+    east_bound_longitude = FloatField(label='East Bound Longitude')
+    north_bound_latitude = FloatField(label='North Bound Latitude')
+    south_bound_latitude = FloatField(label='South Bound Latitude')
+    west_bound_longitude = FloatField(label='West Bound Longitude')
+    point_latitude = FloatField(label='Point Latitude')
+    point_longitude = FloatField(label='Point Longitude')
+    location_name = StringField(
+        label='Geographic location',
+        description='Name of the geographic area covered by the dataset'
+    )
 
 
 class LicenseForm(BaseForm):
     license = SelectField(label='License', choices=[
-        'Attribution - ShareAlike 4.0 International(CC BY - SA 4.0)',
-        'Embargo'
+        ('https://creativecommons.org/publicdomain/zero/1.0/', 'CC0 1.0 Universal (CC0 1.0)'),
+        ('https://creativecommons.org/licenses/by/4.0/', 'Attribution 4.0 International (CC BY 4.0)'),
+        ('https://creativecommons.org/licenses/by-sa/4.0/', 'Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)'),
+        ('https://creativecommons.org/licenses/by-nc/4.0/',
+         'Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)'),
+        ('https://creativecommons.org/licenses/by-nc-sa/4.0/',
+         'Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)'),
+        ('https://creativecommons.org/licenses/by-nd/4.0/',
+         'Attribution-NoDerivatives 4.0 International (CC BY-ND 4.0)'),
+        ('https://creativecommons.org/licenses/by-nc-nd/4.0/',
+         'Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)'),
+        ('Embargo', 'Embargo')
     ])
     embargo_reason = StringField(label='Embargo Reason')
 
@@ -223,19 +238,24 @@ class SubmissionForm(BaseForm):
         min_entries=1,
         description='Other parties who contributed to the resource, including a contact person'
     )
-    licence = FormField(
-        LicenseForm,
-        label='Licence',
-        description='Conditions under which the data submission should be shared'
+    geographic_extent = FormField(GeographicExtentForm, label='Geographic Extent')
+    spatial_resolution = StringField(
+        label='Spatial Resolution',
+        description='Level of detail expressed as a scale factor or ground distance this is only applicable to grid or imagery data'
+    )
+    reference_system = StringField(
+        label='Reference System',
+        description='EPSG code of spatial and temporal reference systems used in the data submission - this is only applicable to projection data'
+    )
+    vertical_extent = FormField(
+        VerticalExtentForm,
+        label='Vertical Extent',
+        description='Measurement: Reference point used to describe vertical extents. E.g. MSL (mean sea level), masl (metres above sea level), mbgl (metres below ground level)'
     )
     date_range = FormField(
         DateRangeForm,
         label='Date Range',
         description='Time period covered by the content of the dataset'
-    )
-    location = StringField(
-        label='Geographic location',
-        description='Name of the geographic area covered by the dataset'
     )
     project = FieldList(
         StringField(),
@@ -251,20 +271,11 @@ class SubmissionForm(BaseForm):
         min_entries=1,
         description='Links for related resources'
     )
-    spatial_resolution = StringField(
-        label='Spatial Resolution',
-        description='Level of detail expressed as a scale factor or ground distance this is only applicable to grid or imagery data'
+    license = FormField(
+        LicenseForm,
+        label='Licence',
+        description='Conditions under which the data submission should be shared'
     )
-    reference_system = StringField(
-        label='Reference System',
-        description='EPSG code of spatial and temporal reference systems used in the data submission - this is only applicable to projection data'
-    )
-    vertical_extent = FormField(
-        VerticalExtentForm,
-        label='Vertical Extent',
-        description='Measurement: Reference point used to describe vertical extents. E.g. MSL (mean sea level), masl (metres above sea level), mbgl (metres below ground level)'
-    )
-    bounding_box = FormField(GeoLocationBoxForm, label='Geolocation Box')
 
 
 class SubmissionDataUploadForm(BaseForm):

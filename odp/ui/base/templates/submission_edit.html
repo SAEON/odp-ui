@@ -6,7 +6,7 @@
     <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
         <div class="container-sm">
             <div class="col-6 m-auto">
-                <h2>Step 1 of 2: Metadata Submission</h2>
+                <h2>{% if show_steps %}Step 1 of 2: {% endif %}Metadata Submission</h2>
             </div>
             <div class="row">
                 {{ render_form(form, submission) }}
