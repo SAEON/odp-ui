@@ -90,12 +90,19 @@ def create():
             if response := api.handle_error(e):
                 return response
 
-    return render_template('submission_edit.html', form=form)
+    return render_template(
+        'submission_edit.html',
+        form=form,
+        show_steps=True
+    )
 
 
 @bp.route('/<id>/upload', methods=['GET', 'POST'])
 @api.view(ODPScope.CATALOG_READ)
 def upload(id):
+    submission = cli.get(f'/submission/{id}', user_id=current_user.id)
+    is_editing = bool(submission.get('dataset_file_name'))
+
     form = SubmissionDataUploadForm(request.form)
     form.dataset.data = request.files.get('dataset')
 
@@ -112,7 +119,12 @@ def upload(id):
             flash(f'Dataset uploaded successfully.', category='success')
             return redirect(url_for('.detail', id=id))
 
-    return render_template('submission_data_upload.html', form=form, submission_id=id)
+    return render_template(
+        'submission_data_upload.html',
+        form=form,
+        submission_id=id,
+        is_editing=is_editing
+    )
 
 
 @bp.route('/<id>/edit', methods=['GET', 'POST'])
@@ -149,6 +161,7 @@ def edit(id):
     return render_template(
         'submission_edit.html',
         submission=submission,
+        show_steps=False,
         form=form
     )
 

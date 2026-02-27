@@ -102,3 +102,11 @@ pre {
 .subform-row:not(:last-child) {
     margin-bottom: 10px;
 }
+
+label.required::after {
+    content: "*";
+    color: red;
+    font-weight: bold;
+    position: absolute;
+    margin-left: 5px;
+}

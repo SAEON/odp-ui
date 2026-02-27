@@ -1,7 +1,7 @@
 $(document).ready(() => {
     setMap();
 
-    initSelect2Fields(['keywords', 'instruments', 'eov_keywords', 'ecv_keywords']);
+    initSelect2Fields(['keywords', 'instruments', 'eov_keywords', 'ecv_keywords', 'ebv_keywords', 'eav_keywords', 'place_keywords']);
 
     $(document).on('blur', 'input[id$="-orcid"]', function () {
         populateOrcidInfo($(this))
@@ -109,15 +109,21 @@ function populateRORInfo(rorInput) {
 function setMap() {
     $('#map').height('300px');
 
-    const $n = $('#bounding_box-north_bound_latitude');
-    const $e = $('#bounding_box-east_bound_longitude');
-    const $s = $('#bounding_box-south_bound_latitude');
-    const $w = $('#bounding_box-west_bound_longitude');
+    const $n = $('#geographic_extent-north_bound_latitude');
+    const $e = $('#geographic_extent-east_bound_longitude');
+    const $s = $('#geographic_extent-south_bound_latitude');
+    const $w = $('#geographic_extent-west_bound_longitude');
+
+    const $p_lat = $('#geographic_extent-point_latitude');
+    const $p_lon = $('#geographic_extent-point_longitude');
 
     const n = parseFloat($n.val());
     const e = parseFloat($e.val());
     const s = parseFloat($s.val());
     const w = parseFloat($w.val());
+
+    const p_lat = parseFloat($p_lat.val());
+    const p_lon = parseFloat($p_lon.val());
 
     const map = _initMap(n, e, s, w);
 
@@ -127,12 +133,15 @@ function setMap() {
         draw: {
             polyline: false,
             polygon: false,
-            marker: false,
+            marker: true,
             circle: false,
             circlemarker: false,
             rectangle: true
         },
-        edit: false
+        edit: {
+            featureGroup: drawnItems,
+            remove: true
+        }
     });
     map.addLayer(drawnItems);
     map.addControl(drawControl);
@@ -149,17 +158,57 @@ function setMap() {
         });
     }
 
+    if (!isNaN(p_lat) && !isNaN(p_lon)) {
+        const marker = L.marker([p_lat, p_lon]);
+        drawnItems.addLayer(marker);
+
+        if (!(n && e && s && w)) {
+            map.setView([p_lat, p_lon], 9);
+        }
+    }
+
+    function syncInputsToMap() {
+        $n.val('');
+        $e.val('');
+        $s.val('');
+        $w.val('');
+        $p_lat.val('');
+        $p_lon.val('');
+
+        drawnItems.eachLayer(function (layer) {
+            if (layer instanceof L.Marker) {
+                const latlng = layer.getLatLng();
+                $p_lat.val(latlng.lat);
+                $p_lon.val(latlng.lng);
+            } else if (layer instanceof L.Rectangle) {
+                const bounds = layer.getBounds();
+                $n.val(bounds.getNorth());
+                $e.val(bounds.getEast());
+                $s.val(bounds.getSouth());
+                $w.val(bounds.getWest());
+            }
+        });
+    }
+
     map.on(L.Draw.Event.CREATED, function (event) {
-        drawnItems.clearLayers();
-
         const layer = event.layer;
-        const bounds = layer.getBounds();
-
-        $n.val(bounds.getNorth());
-        $e.val(bounds.getEast());
-        $s.val(bounds.getSouth());
-        $w.val(bounds.getWest());
+        drawnItems.eachLayer(function (existingLayer) {
+        if (layer instanceof L.Marker && existingLayer instanceof L.Marker) {
+            drawnItems.removeLayer(existingLayer);
+        } else if (layer instanceof L.Rectangle && existingLayer instanceof L.Rectangle) {
+            drawnItems.removeLayer(existingLayer);
+        }
+    });
 
         drawnItems.addLayer(layer);
+        syncInputsToMap();
+    });
+
+    map.on(L.Draw.Event.EDITED, function (event) {
+        syncInputsToMap();
+    });
+
+    map.on(L.Draw.Event.DELETED, function (event) {
+        syncInputsToMap();
     });
 }
