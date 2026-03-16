@@ -18,14 +18,14 @@ bp = Blueprint(
 
 
 @bp.route('/')
-@cli.view()
+@api.view(ODPScope.SUBMISSION_READ)
 def index():
     page = request.args.get('page', 1)
 
     submissions = []
 
     if current_user.is_authenticated:
-        submissions = cli.get(
+        submissions = api.get(
             '/submission/user_submissions',
             user_id=current_user.id,
             page=page,
@@ -41,13 +41,13 @@ def index():
 
 
 @bp.route('/<id>')
-@cli.view()
+@api.view(ODPScope.SUBMISSION_READ)
 def detail(id):
     if not current_user.is_authenticated:
         flash('Please log in to access that page.', 'warning')
         return redirect(url_for('.index'))
 
-    submission = cli.get(f'/submission/{id}', user_id=current_user.id)
+    submission = api.get(f'/submission/{id}', user_id=current_user.id)
 
     buttons_enabled = (submission['status'] == SubmissionStatus.in_progress)
 
@@ -59,7 +59,7 @@ def detail(id):
 
 
 @bp.route('/new', methods=['GET', 'POST'])
-@cli.view()
+@api.view(ODPScope.SUBMISSION_WRITE)
 def create():
     if not current_user.is_authenticated:
         flash('Please log in to access that page.', 'warning')
@@ -76,7 +76,7 @@ def create():
         cleaned_data = utils.clean_submission_data(form.data)
 
         try:
-            submission = cli.post(
+            submission = api.post(
                 api_route,
                 dict(
                     data=cleaned_data,
@@ -98,9 +98,9 @@ def create():
 
 
 @bp.route('/<id>/upload', methods=['GET', 'POST'])
-@api.view(ODPScope.CATALOG_READ)
+@api.view(ODPScope.SUBMISSION_WRITE)
 def upload(id):
-    submission = cli.get(f'/submission/{id}', user_id=current_user.id)
+    submission = api.get(f'/submission/{id}', user_id=current_user.id)
     is_editing = bool(submission.get('dataset_file_name'))
 
     form = SubmissionDataUploadForm(request.form)
@@ -128,7 +128,7 @@ def upload(id):
 
 
 @bp.route('/<id>/edit', methods=['GET', 'POST'])
-@api.view(ODPScope.CATALOG_READ)
+@api.view(ODPScope.SUBMISSION_WRITE)
 def edit(id):
     if not current_user.is_authenticated:
         flash('Please log in to access that page.', 'warning')
@@ -167,7 +167,7 @@ def edit(id):
 
 
 @bp.route('/<id>/submit', methods=['GET', 'POST'])
-@api.view(ODPScope.CATALOG_READ)
+@api.view(ODPScope.SUBMISSION_WRITE)
 def submit(id):
     if not current_user.is_authenticated:
         flash('Please log in to access that page.', 'warning')
@@ -182,7 +182,7 @@ def submit(id):
 
 
 @bp.route('/<id>/delete', methods=['POST', ])
-@api.view(ODPScope.RECORD_READ)
+@api.view(ODPScope.SUBMISSION_DELETE)
 def delete(id):
     if not current_user.is_authenticated:
         flash('Please log in to access that page.', 'warning')
