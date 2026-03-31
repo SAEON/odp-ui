@@ -3,8 +3,7 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for, Response, \
-    jsonify
+from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, url_for, Response
 
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
@@ -186,7 +185,6 @@ def view(id):
     record = cli.get(f'/catalog/{catalog_id}/records/{id}')
 
     # Fetch all available facets to help with keyword routing
-    # This allows the template to know which facet each keyword belongs to
     facet_values = {}
     try:
         search_result = cli.get(
@@ -201,9 +199,6 @@ def view(id):
             # Extract just the values (first element of each tuple)
             facet_values = {facet: [val[0] if isinstance(val, (list, tuple)) else val for val in vals]
                             for facet, vals in search_result['facets'].items()}
-            current_app.logger.info(f"Fetched facet_values: {facet_values}")
-        else:
-            current_app.logger.warning(f"No facets in search_result: {search_result}")
     except Exception as e:
         current_app.logger.error(f"Could not fetch facet values: {e}", exc_info=True)
 
@@ -238,7 +233,6 @@ def subset_record_list():
     catalog_id = current_app.config['CATALOG_ID']
     record_ids = request.args.getlist('record_id_or_doi_list')
 
-    # Retrieve page and size from request parameters, defaulting if not present
     page = request.args.get('page', 1, type=int)
     size = request.args.get('size', 50, type=int)
 
@@ -250,48 +244,38 @@ def subset_record_list():
         size=size
     )
 
-    client_id = api.client_id.split('.')[0]
-
-
     return render_template(
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
         audit_form=DownloadAuditForm(),
-        show_bulk_download_options=(client_id in BULK_DOWNLOAD_CLIENTS)
+        show_bulk_download_options=(client_id in BULK_DOWNLOAD_CLIENTS),
+        facet_values={},
     )
 
-@bp.route('/generate-zip-bundle', methods=['POST'])
-def generate_zip_bundle():
+@bp.route('/download-audit', methods=['POST'])
+def download_audit():
     """
-    Proxy endpoint for server-side ZIP bundle generation.
+    Validates the download audit form with WTForms, then forwards the request
+    to the ODP API server for ZIP bundle generation and returns the file.
+    """
+    form = DownloadAuditForm(request.form)
+    record_ids = request.form.getlist('record_ids')
 
-    Receives record IDs and user data from the UI frontend,
-    forwards the request to the ODP API server for ZIP generation,
-    and returns the binary ZIP file to the client.
+    if not form.validate() or not record_ids:
+        flash('Please fill in all required fields before downloading.')
+        return redirect(request.referrer or url_for('catalog.index'))
 
-    Avoids CORS issues by routing through the UI server.
-
-    Request body:
-    {
-        "record_ids": ["ABC", "DEF"],
-        "user_data": {
-            "name": "User Name",
-            "email": "user@example.com",
-            "organisation": "University"
+    payload = {
+        'record_ids': record_ids,
+        'user_data': {
+            'name': form.name.data,
+            'email': form.email.data,
+            'organisation': form.organisation.data,
         }
     }
 
-    Response: Binary ZIP file with ZIP content headers
-    """
-    payload = request.json
-    if not payload:
-        return jsonify({'error': 'No JSON payload received'}), 400
-
     try:
-        # Forward request to ODP API server
         api_response = cli.post('/catalog/generate-zip-bundle', payload, return_bytes=True)
-
-        # Return binary ZIP file with proper headers
         return Response(
             api_response,
             mimetype='application/zip',
@@ -303,35 +287,5 @@ def generate_zip_bundle():
 
     except Exception as e:
         current_app.logger.error(f"ZIP generation failed: {str(e)}", exc_info=True)
-        try:
-            error_data = e.response.json()
-            status_code = e.response.status_code
-        except:
-            error_data = {'error': str(e)}
-            status_code = 500
-
-        return jsonify(error_data), status_code
-
-
-@bp.route('/download-audit', methods=['POST'])
-def download_audit():
-    """
-    Proxy endpoint to receive an audit log from the UI
-    and forward it to the main download audit API.
-    """
-    form = DownloadAuditForm(request.form)
-    if form.validate():
-        payload = {
-            'name': form.name.data,
-            'email': form.email.data,
-            'organisation': form.organisation.data,
-        }
-        try:
-            response_data = cli.post('/download/audit', payload)
-            return jsonify({'success': True, 'data': response_data}), 201
-        except Exception as e:
-            current_app.logger.error(f"Download audit failed: {str(e)}")
-            return jsonify({'error': 'Server error'}), 500
-
-        # If validation fails, return the errors as JSON for the UI to display
-    return jsonify({'success': False, 'errors': form.errors}), 400
+        flash('Failed to generate ZIP bundle. Please try again.')
+        return redirect(request.referrer or url_for('catalog.index'))

@@ -11,7 +11,7 @@
                     <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="download-audit-form" method="post">
+                <form id="download-audit-form" method="post" action="{{ url_for('catalog.download_audit') }}">
                     <div class="modal-body">
                         <p>Please provide some information before downloading.</p>
                         {{ form.csrf_token }}
@@ -385,9 +385,9 @@
             </div>
         </div>
 
-        {{ download_audit_modal(audit_form) }}
-
     </form>
+
+    {{ download_audit_modal(audit_form) }}
 {% endmacro %}
 
 {% macro bulk_selection_controls() %}
@@ -439,7 +439,6 @@
                 No DOI
             {% endif %}
         </div>
-        {#</button>#}
     </li>
     {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
         <li class="nav-item" role="presentation">

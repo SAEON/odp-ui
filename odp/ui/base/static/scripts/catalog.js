@@ -5,12 +5,7 @@ const boxColor = getComputedStyle(document.documentElement)
 let downloadModalInstance;
 let downloadModalElement;
 let submitDownloadBtn;
-let submitDownloadLoader;
 let downloadAuditForm;
-
-let downloadContext = {
-    recordsToDownload: [], buttonElement: null
-};
 
 const DOWNLOAD_CACHE_KEY = 'mims_download_cache';
 const CACHE_EXPIRY_DAYS = 30;
@@ -21,14 +16,12 @@ function getDownloadCache() {
 
     try {
         const data = JSON.parse(cached);
-        // Check if cache has expired
         if (data.timestamp && (Date.now() - data.timestamp > CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000)) {
             localStorage.removeItem(DOWNLOAD_CACHE_KEY);
             return null;
         }
         return data;
     } catch (e) {
-        console.warn('Failed to parse download cache:', e);
         return null;
     }
 }
@@ -40,7 +33,7 @@ function saveDownloadCache(name, email, organisation) {
         };
         localStorage.setItem(DOWNLOAD_CACHE_KEY, JSON.stringify(cacheData));
     } catch (e) {
-        console.warn('Failed to save download cache:', e);
+        // Silently fail if cache cannot be saved
     }
 }
 
@@ -235,11 +228,9 @@ function getSelectedIds() {
 
 function buildRedirectUrl(selectedIds) {
     const currentUrl = new URL(window.location.href);
-    const baseUrl = `${currentUrl.origin}/catalog/subset`
-    page = 1
-    size = 50
+    const baseUrl = `${currentUrl.origin}/catalog/subset`;
     const queryParams = selectedIds.map(id => `record_id_or_doi_list=${id}`).join('&');
-    return `${baseUrl}?${queryParams}&page=${page}&size=${size}`;
+    return `${baseUrl}?${queryParams}&page=1&size=50`;
 }
 
 function goToSelectedRecordList(event, records) {
@@ -251,12 +242,8 @@ function goToSelectedRecordList(event, records) {
 
 function updateButtonStates() {
     const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
-    const unselectAllCheckbox = document.getElementById('unselect_all');
     const downloadSelectedBtn = document.getElementById('download-selected-btn');
 
-    if (unselectAllCheckbox) {
-        unselectAllCheckbox.disabled = checkboxes.length === 0;
-    }
     if (downloadSelectedBtn) {
         downloadSelectedBtn.disabled = checkboxes.length === 0;
     }
@@ -271,11 +258,11 @@ function toggleSelectAll(selectAllCheckbox) {
 }
 
 function handleShareClick(buttonElement) {
-    const cb = buttonElement.previousElementSibling;   // first child is the <input>
+    const cb = buttonElement.previousElementSibling;
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-function downloadSelectedRecords(event, buttonEl, recordId) {
+function downloadSelectedRecords(event, _buttonEl, recordId) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -286,107 +273,26 @@ function downloadSelectedRecords(event, buttonEl, recordId) {
             return;
         }
 
-        if (selectedIds.length > 0) {
-            // Store context for the modal's submit handler
-            downloadContext.recordsToDownload = selectedIds;
-            downloadContext.buttonElement = buttonEl; // Store the button
+        if (downloadAuditForm) {
+            downloadAuditForm.reset();
 
-            // Reset form and show modal
-            if (downloadAuditForm) downloadAuditForm.reset();
-
-            const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
-
-            if (disclaimerCheckbox) {
-                disclaimerCheckbox.checked = false;
-            }
-
-            if (submitDownloadBtn) {
-                submitDownloadBtn.disabled = true;
-            }
-
-            // Populate form with cached values if available
-            populateDownloadFormFromCache('download-name', 'download-email', 'organisation');
-
-            if (downloadModalInstance) downloadModalInstance.show();
-        } else {
-            alert('No matching records found to download.');
+            downloadAuditForm.querySelectorAll('input[name="record_ids"]').forEach(el => el.remove());
+            selectedIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'record_ids';
+                input.value = id;
+                downloadAuditForm.appendChild(input);
+            });
         }
 
-    } catch (err) {
-        console.error("Failed to prepare download:", err);
+        if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+
+        populateDownloadFormFromCache('download-name', 'download-email', 'organisation');
+        if (downloadModalInstance) downloadModalInstance.show();
+
+    } catch {
         alert("An error occurred. Please try again.");
-    }
-}
-
-async function handleSubmitAndPerformDownload(event) {
-    event.preventDefault();
-
-    // Get form inputs
-    const nameInput = document.getElementById('download-name');
-    const emailInput = document.getElementById('download-email');
-    const organisationInput = document.getElementById('organisation');
-
-    submitDownloadBtn.disabled = true;
-    submitDownloadLoader.style.display = 'inline-block';
-
-    // Save to cache for future downloads
-    saveDownloadCache(nameInput.value, emailInput.value, organisationInput.value);
-
-    // Perform ZIP download with user data (server handles audit logging automatically)
-    const userData = {
-        name: nameInput.value.trim(), email: emailInput.value.trim(), organisation: organisationInput.value.trim()
-    };
-
-    await _performZipDownload(downloadContext.buttonElement, downloadContext.recordsToDownload, userData);
-
-    submitDownloadBtn.disabled = false;
-    submitDownloadLoader.style.display = 'none';
-    downloadModalInstance.hide();
-
-    downloadContext = {
-        recordsToDownload: [], buttonElement: null
-    };
-}
-
-async function _performZipDownload(buttonEl, selectedRecords, userData) {
-    const loader = buttonEl.querySelector('.download-loader');
-    if (loader) loader.style.display = 'inline-block';
-
-    try {
-
-        if (selectedRecords.length === 0) {
-            throw new Error('No valid record IDs found');
-        }
-
-        // Call server-side ZIP generation endpoint
-        const response = await fetch('/catalog/generate-zip-bundle', {
-            method: 'POST', headers: {
-                'Content-Type': 'application/json',
-            }, body: JSON.stringify({
-                record_ids: selectedRecords, user_data: userData
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${response.status} - ${errorText}`);
-        }
-
-        // Get ZIP blob from response
-        const zipBlob = await response.blob();
-
-        // Trigger download
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(zipBlob);
-        a.download = 'records.zip';
-        a.click();
-        URL.revokeObjectURL(a.href);
-
-    } catch (err) {
-        console.error("Download failed:", err);
-        alert("Failed to download records. Please try again.");
-    } finally {
-        if (loader) loader.style.display = 'none';
     }
 }
 
@@ -394,7 +300,7 @@ function createAndDisplayLink(event) {
     event.preventDefault();
     const targetInput = document.getElementById('record-subset-link');
     if (!targetInput) {
-        console.error("Missing target input 'record-subset-link'");
+        alert("An error occurred while generating the link.");
         return;
     }
 
@@ -419,8 +325,8 @@ function copyToClipboard(elementSelector) {
                     copyButton.innerHTML = originalText;
                 }, 2000);
             }
-        }).catch(err => {
-            console.error('Failed to copy text: ', err);
+        }).catch(() => {
+            alert('Failed to copy text. Please try manually.');
         });
     }
 }
@@ -446,7 +352,6 @@ function initDownloadModal() {
 
     downloadModalInstance = new bootstrap.Modal(downloadModalElement);
     submitDownloadBtn = document.getElementById('submit-download-btn');
-    submitDownloadLoader = submitDownloadBtn?.querySelector('.submit-download-loader');
     downloadAuditForm = document.getElementById('download-audit-form');
 
     const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
@@ -456,8 +361,22 @@ function initDownloadModal() {
         });
     }
 
-    if (submitDownloadBtn) {
-        submitDownloadBtn.addEventListener('click', handleSubmitAndPerformDownload);
+    if (downloadAuditForm) {
+        downloadAuditForm.addEventListener('submit', function () {
+            // Show loader and disable button while server generates ZIP
+            const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
+            if (loader) loader.style.display = 'inline-block';
+            if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+
+            saveDownloadCache(
+                document.getElementById('download-name').value,
+                document.getElementById('download-email').value,
+                document.getElementById('organisation').value
+            );
+
+            // Close modal after a short delay — download proceeds in browser's download bar
+            setTimeout(() => downloadModalInstance.hide(), 1500);
+        });
     }
 }
 
