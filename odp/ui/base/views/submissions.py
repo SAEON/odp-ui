@@ -173,7 +173,11 @@ def submit(id):
         flash('Please log in to access that page.', 'warning')
         return redirect(url_for('.index'))
 
-    submission = api.post(f'/submission/submit/{id}', data={})
+    submission = api.post(
+        f'/submission/submit/{id}',
+        user_id=current_user.id,
+        data={}
+    )
 
     return render_template(
         'submission_detail.html',
