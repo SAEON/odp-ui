@@ -275,14 +275,24 @@ def download_audit():
     }
 
     try:
-        api_response = cli.post('/catalog/generate-zip-bundle', payload, return_bytes=True)
+        from flask import stream_with_context
+        api_response = cli.stream_post('/catalog/generate-zip-bundle', payload)
+        
+        def generate():
+            for chunk in api_response.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+
+        headers = {
+            'Content-Disposition': 'attachment; filename="records.zip"',
+        }
+        if 'Content-Length' in api_response.headers:
+            headers['Content-Length'] = api_response.headers['Content-Length']
+
         return Response(
-            api_response,
+            stream_with_context(generate()),
             mimetype='application/zip',
-            headers={
-                'Content-Disposition': 'attachment; filename="records.zip"',
-                'Content-Length': str(len(api_response))
-            }
+            headers=headers
         )
 
     except Exception as e:
