@@ -16,6 +16,8 @@
         <div class="form-check">
             {{ field(class='form-check-input') }}
         </div>
+    {% elif field.type == 'DateField' %}
+        {{ field(class=classes|join(' '), spellcheck='false', data_date_format='yyyy/mm/dd', **kwargs) }}
     {% else %}
         {{ field(class=classes|join(' '), spellcheck='false', **kwargs) }}
     {% endif %}
@@ -102,7 +104,7 @@
 
 {% macro render_field_list(field_list) %}
     <div class="row mt-4">
-        <div class="col-3 text-end">
+        <div class="col-2 text-end">
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
         <div class="col-9">
@@ -139,7 +141,7 @@
 
 {% macro render_creator_field_list(field_list) %}
     <div class="row mt-4">
-        <div class="col-3 text-end">
+        <div class="col-2 text-end">
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
         <div class="col-9">
@@ -173,7 +175,7 @@
 
 {% macro render_flat_field_list(field_list) %}
     <div class="row mt-4">
-        <div class="col-3 text-end">
+        <div class="col-2 text-end">
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
         <div class="col-9">
@@ -211,7 +213,7 @@
 
 {% macro field_row(field, obj=none) %}
     <div class="row align-items-baseline mt-4">
-        <div class="col-3 text-end">
+        <div class="col-2 text-end">
             {{ field.label(class='form-label' + (' required' if field.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
         <div class="col-9">

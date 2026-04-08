@@ -10,6 +10,11 @@ $(document).ready(() => {
     $(document).on('blur', 'input[id$="-ror"]', function () {
         populateRORInfo($(this))
     });
+
+    flatpickr('input[type="date"]', {
+        dateFormat: "Y/m/d",
+        allowInput: true
+    });
 });
 
 function initSelect2Fields(elementIds) {
@@ -193,12 +198,12 @@ function setMap() {
     map.on(L.Draw.Event.CREATED, function (event) {
         const layer = event.layer;
         drawnItems.eachLayer(function (existingLayer) {
-        if (layer instanceof L.Marker && existingLayer instanceof L.Marker) {
-            drawnItems.removeLayer(existingLayer);
-        } else if (layer instanceof L.Rectangle && existingLayer instanceof L.Rectangle) {
-            drawnItems.removeLayer(existingLayer);
-        }
-    });
+            if (layer instanceof L.Marker && existingLayer instanceof L.Marker) {
+                drawnItems.removeLayer(existingLayer);
+            } else if (layer instanceof L.Rectangle && existingLayer instanceof L.Rectangle) {
+                drawnItems.removeLayer(existingLayer);
+            }
+        });
 
         drawnItems.addLayer(layer);
         syncInputsToMap();
