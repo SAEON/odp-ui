@@ -1,192 +1,199 @@
 {% extends 'base.html' %}
-{% from 'lib.j2' import select2_js, select2_css %}
+{% from 'lib.j2' import select2_js, select2_css, flatpickr_css, flatpickr_js %}
 {% from 'web_content.j2' import render_field, render_subform, render_flat_subform, render_field_list,
 render_creator_field_list, render_flat_field_list, field_row %}
 
 
 {% block main %}
-<main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
-    <div class="container-sm">
-        <div class="col-10 m-auto mb-4">
-            <h2>{% if show_steps %}Step 1 of 2: {% endif %}Metadata Submission</h2>
-        </div>
-        <div class="row">
-            <form action="{{ url_for('.edit', id=submission.id) if submission else url_for('.create') }}" method="post">
-                {{ form.csrf_token }}
-                <div class="row">
-                    <div class="col-10 m-auto">
-                        <div class="mt-5 mb-4 d-flex align-items-center">
-                            <h5 class="mb-0 me-3"
-                                style="font-size: 1.6rem; font-weight: 600; color: rgb(var(--bs-primary-rgb));">
-                                Required
-                                Fields</h5>
-                            <hr class="flex-grow-1 m-0 border-secondary">
-                        </div>
-                        {{ field_row(form.title, submission) }}
-                        {{ field_row(form.abstract, submission, rows=10) }}
-                        {{ field_row(form.methods, submission, rows=10) }}
-                        {{ field_row(form.instruments, submission) }}
-                        {{ field_row(form.keywords, submission) }}
-                        {{ render_creator_field_list(form.creators) }}
-                        {{ render_creator_field_list(form.contributors) }}
-                        <div class="row align-items-baseline mt-4">
-                            <div class="col-3 text-end">
-                                {{ form.geographic_extent.label(class='form-label', style='font-size: 1.3rem;') }}
+    <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
+        <div class="container-sm">
+            <div class="col-10 m-auto mb-4">
+                <h2>{% if show_steps %}Step 1 of 2: {% endif %}Metadata Submission</h2>
+                <p>
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore
+                    et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+                    aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+                    cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
+                    culpa qui officia deserunt mollit anim id est laborum.
+                </p>
+            </div>
+            <div class="row">
+                <form action="{{ url_for('.edit', id=submission.id) if submission else url_for('.create') }}"
+                      method="post">
+                    {{ form.csrf_token }}
+                    <div class="row">
+                        <div class="col-10 m-auto">
+                            <div class="mt-5 mb-4 d-flex align-items-center">
+                                <h5 class="mb-0 me-3"
+                                    style="font-size: 1.6rem; font-weight: 600; color: rgb(var(--bs-primary-rgb));">
+                                    Required
+                                    Fields</h5>
+                                <hr class="flex-grow-1 m-0 border-secondary">
                             </div>
-                            <div class="col-9">
-                                <div class="subform-wrapper py-3">
-                                    {{ form.geographic_extent.csrf_token }}
-                                    <div class="row mb-3">
-                                        <div class="col-12">
-                                            {{ form.geographic_extent.map.label(class='form-label mb-1 small' + ('
+                            {{ field_row(form.title, submission) }}
+                            {{ field_row(form.abstract, submission, rows=10) }}
+                            {{ field_row(form.methods, submission, rows=10) }}
+                            {{ field_row(form.instruments, submission) }}
+                            {{ field_row(form.keywords, submission) }}
+                            {{ render_creator_field_list(form.creators) }}
+                            {{ render_creator_field_list(form.contributors) }}
+                            <div class="row align-items-baseline mt-4">
+                                <div class="col-2 text-end">
+                                    {{ form.geographic_extent.label(class='form-label', style='font-size: 1.3rem;') }}
+                                </div>
+                                <div class="col-9">
+                                    <div class="subform-wrapper py-3">
+                                        {{ form.geographic_extent.csrf_token }}
+                                        <div class="row mb-3">
+                                            <div class="col-12">
+                                                {{ form.geographic_extent.map.label(class='form-label mb-1 small' + ('
                                             required'
                                             if form.geographic_extent.map.flags.required else '')) }}
-                                            <div id="map"></div>
-                                            {% if form.geographic_extent.map.description %}
-                                            <div class="form-text">{{ form.geographic_extent.map.description }}</div>{%
-                                            endif %}
+                                                <div id="map"></div>
+                                                {% if form.geographic_extent.map.description %}
+                                                    <div class="form-text">{{ form.geographic_extent.map.description }}</div>{% endif %}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            {{ form.geographic_extent.north_bound_latitude.label(class='form-label mb-1
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                {{ form.geographic_extent.north_bound_latitude.label(class='form-label mb-1
                                             small'
                                             + (' required' if form.geographic_extent.north_bound_latitude.flags.required
                                             else '')) }}
-                                            {{ render_field(form.geographic_extent.north_bound_latitude, description_on_top=false) }}
-                                        </div>
-                                        <div class="col-6">
-                                            {{ form.geographic_extent.south_bound_latitude.label(class='form-label mb-1
+                                                {{ render_field(form.geographic_extent.north_bound_latitude, description_on_top=false) }}
+                                            </div>
+                                            <div class="col-6">
+                                                {{ form.geographic_extent.south_bound_latitude.label(class='form-label mb-1
                                             small'
                                             + (' required' if form.geographic_extent.south_bound_latitude.flags.required
                                             else '')) }}
-                                            {{ render_field(form.geographic_extent.south_bound_latitude, description_on_top=false) }}
+                                                {{ render_field(form.geographic_extent.south_bound_latitude, description_on_top=false) }}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            {{ form.geographic_extent.west_bound_longitude.label(class='form-label mb-1
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                {{ form.geographic_extent.west_bound_longitude.label(class='form-label mb-1
                                             small'
                                             + (' required' if form.geographic_extent.west_bound_longitude.flags.required
                                             else '')) }}
-                                            {{ render_field(form.geographic_extent.west_bound_longitude, description_on_top=false) }}
-                                        </div>
-                                        <div class="col-6">
-                                            {{ form.geographic_extent.east_bound_longitude.label(class='form-label mb-1
+                                                {{ render_field(form.geographic_extent.west_bound_longitude, description_on_top=false) }}
+                                            </div>
+                                            <div class="col-6">
+                                                {{ form.geographic_extent.east_bound_longitude.label(class='form-label mb-1
                                             small'
                                             + (' required' if form.geographic_extent.east_bound_longitude.flags.required
                                             else '')) }}
-                                            {{ render_field(form.geographic_extent.east_bound_longitude, description_on_top=false) }}
+                                                {{ render_field(form.geographic_extent.east_bound_longitude, description_on_top=false) }}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-6">
-                                            {{ form.geographic_extent.point_latitude.label(class='form-label mb-1 small'
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                {{ form.geographic_extent.point_latitude.label(class='form-label mb-1 small'
                                             + ('
-                                            required' if form.geographic_extent.point_latitude.flags.required else ''))
-                                            }}
-                                            {{ render_field(form.geographic_extent.point_latitude, description_on_top=false) }}
-                                        </div>
-                                        <div class="col-6">
-                                            {{ form.geographic_extent.point_longitude.label(class='form-label mb-1
+                                            required' if form.geographic_extent.point_latitude.flags.required else '')) }}
+                                                {{ render_field(form.geographic_extent.point_latitude, description_on_top=false) }}
+                                            </div>
+                                            <div class="col-6">
+                                                {{ form.geographic_extent.point_longitude.label(class='form-label mb-1
                                             small' + ('
-                                            required' if form.geographic_extent.point_longitude.flags.required else ''))
-                                            }}
-                                            {{ render_field(form.geographic_extent.point_longitude, description_on_top=false) }}
+                                            required' if form.geographic_extent.point_longitude.flags.required else '')) }}
+                                                {{ render_field(form.geographic_extent.point_longitude, description_on_top=false) }}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            {{ form.geographic_extent.location_name.label(class='form-label mb-1 small'
+                                        <div class="row">
+                                            <div class="col-12">
+                                                {{ form.geographic_extent.location_name.label(class='form-label mb-1 small'
                                             + ('
-                                            required' if form.geographic_extent.location_name.flags.required else ''))
-                                            }}
-                                            {{ render_field(form.geographic_extent.location_name, description_on_top=false) }}
+                                            required' if form.geographic_extent.location_name.flags.required else '')) }}
+                                                {{ render_field(form.geographic_extent.location_name, description_on_top=false) }}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="mt-5 mb-4 d-flex align-items-center">
-                            <h5 class="mb-0 me-3"
-                                style="font-size: 1.6rem; font-weight: 600; color: rgb(var(--bs-primary-rgb));">
-                                Recommended Fields</h5>
-                            <hr class="flex-grow-1 m-0 border-secondary">
-                        </div>
-                        {{ field_row(form.spatial_resolution, submission) }}
-                        {{ field_row(form.reference_system, submission) }}
-                        <div class="row align-items-baseline mt-4">
-                            <div class="col-3 text-end">
-                                {{ form.vertical_extent.label(class='form-label', style='font-size: 1.3rem;') }}
+                            <div class="mt-5 mb-4 d-flex align-items-center">
+                                <h5 class="mb-0 me-3"
+                                    style="font-size: 1.6rem; font-weight: 600; color: rgb(var(--bs-primary-rgb));">
+                                    Recommended Fields</h5>
+                                <hr class="flex-grow-1 m-0 border-secondary">
                             </div>
-                            <div class="col-9">
-                                {{ render_flat_subform(form.vertical_extent) }}
+                            {{ field_row(form.spatial_resolution, submission) }}
+                            {{ field_row(form.reference_system, submission) }}
+                            <div class="row align-items-baseline mt-4">
+                                <div class="col-2 text-end">
+                                    {{ form.vertical_extent.label(class='form-label', style='font-size: 1.3rem;') }}
+                                </div>
+                                <div class="col-9">
+                                    {{ render_flat_subform(form.vertical_extent) }}
+                                </div>
                             </div>
-                        </div>
-                        <div class="row align-items-baseline mt-4">
-                            <div class="col-3 text-end">
-                                {{ form.date_range.label(class='form-label', style='font-size: 1.3rem;') }}
+                            <div class="row align-items-baseline mt-4">
+                                <div class="col-2 text-end">
+                                    {{ form.date_range.label(class='form-label', style='font-size: 1.3rem;') }}
+                                </div>
+                                <div class="col-9">
+                                    {{ render_flat_subform(form.date_range) }}
+                                </div>
                             </div>
-                            <div class="col-9">
-                                {{ render_flat_subform(form.date_range) }}
-                            </div>
-                        </div>
-                        {{ render_field_list(form.project) }}
-                        {{ render_flat_field_list(form.related_identifiers) }}
-                        <div class="row align-items-baseline mt-4">
-                            <div class="col-3 text-end">
-                                {{ form.license.label(class='form-label', style='font-size: 1.3rem;') }}
-                            </div>
-                            <div class="col-9">
-                                {{ render_subform(form.license) }}
+                            {{ render_field_list(form.project) }}
+                            {{ render_flat_field_list(form.related_identifiers) }}
+                            <div class="row align-items-baseline mt-4">
+                                <div class="col-2 text-end">
+                                    {{ form.license.label(class='form-label', style='font-size: 1.3rem;') }}
+                                </div>
+                                <div class="col-9">
+                                    {{ render_subform(form.license) }}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="mt-4 col-10 mx-auto d-flex justify-content-end">
-                    <a href="{{ url_for('.detail', id=submission.id) if submission else url_for('.index') }}"
-                        class="btn btn-outline-secondary btn-action me-2">
-                        Cancel
-                    </a>
-                    <button type="submit" class="btn btn-outline-primary btn-action">
-                        Save
-                    </button>
-                </div>
-            </form>
+                    <div class="mt-4 col-10 mx-auto d-flex justify-content-end">
+                        <a href="{{ url_for('.detail', id=submission.id) if submission else url_for('.index') }}"
+                           class="btn btn-outline-secondary btn-action me-2">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-outline-primary btn-action">
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-</main>
+    </main>
 {% endblock %}
 
 {% block styles %}
-{{ super() }}
-{{ select2_css() }}
+    {{ super() }}
+    {{ select2_css() }}
+    {{ flatpickr_css() }}
 {% endblock %}
 
+
 {% block scripts %}
-{{ super() }}
-{{ select2_js() }}
-<script src="{{ url_for('static', filename='scripts/controls.js') }}"></script>
-<script src="{{ url_for('static', filename='scripts/submission.js') }}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const licenseSelect = document.getElementById('license-license');
-        const embargoReasonField = document.getElementById('license-embargo_reason');
+    {{ super() }}
+    {{ select2_js() }}
+    {{ flatpickr_js() }}
+    <script src="{{ url_for('static', filename='scripts/controls.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/submission.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const licenseSelect = document.getElementById('license-license');
+            const embargoReasonField = document.getElementById('license-embargo_reason');
 
-        if (licenseSelect && embargoReasonField) {
-            const embargoReasonRow = embargoReasonField.closest('.row');
+            if (licenseSelect && embargoReasonField) {
+                const embargoReasonRow = embargoReasonField.closest('.row');
 
-            function toggleEmbargoReason() {
-                if (licenseSelect.value === 'Embargo') {
-                    embargoReasonRow.style.display = '';
-                } else {
-                    embargoReasonRow.style.display = 'none';
+                function toggleEmbargoReason() {
+                    if (licenseSelect.value === 'Embargo') {
+                        embargoReasonRow.style.display = '';
+                    } else {
+                        embargoReasonRow.style.display = 'none';
+                    }
                 }
-            }
 
-            licenseSelect.addEventListener('change', toggleEmbargoReason);
-            toggleEmbargoReason();
-        }
-    });
-</script>
+                licenseSelect.addEventListener('change', toggleEmbargoReason);
+                toggleEmbargoReason();
+            }
+        });
+    </script>
 {% endblock %}
