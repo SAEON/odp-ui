@@ -18,6 +18,10 @@
           integrity="sha256-+omx7xYvI+/C0kfnQmjAIW8dDbTweWpbYHWzveX4ii4=" crossorigin="anonymous">
 {% endmacro %}
 
+{% macro bootswatch_sandstone_css() %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootswatch@5.3.3/dist/sandstone/bootstrap.min.css">
+{% endmacro %}
+
 {% macro jquery_js() %}
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.3/dist/jquery.min.js"
             integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
@@ -39,6 +43,22 @@
             integrity="sha256-n46X55zWAEGuiNw1uLAZzC9eHfHto1T4xB1rWWvdSGs=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@1.0.4/dist/leaflet.draw.js"
             integrity="sha256-siofc4Uwjlra3YWkwthOn8Uj69cNN4aMug/iOHNiRgs=" crossorigin="anonymous"></script>
+{% endmacro %}
+
+{% macro select2_js() %}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endmacro %}
+
+{% macro select2_css() %}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endmacro %}
+
+{% macro flatpickr_css() %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+{% endmacro %}
+
+{% macro flatpickr_js() %}
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 {% endmacro %}
 
 {% macro js_zip() %}

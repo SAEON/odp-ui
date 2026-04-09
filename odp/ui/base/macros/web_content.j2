@@ -1,0 +1,229 @@
+{% macro render_field(field, obj=none, description_on_top=true) %}
+    {% set classes = ['form-control'] %}
+    {% if 'typeahead' in field.name %}{% set classes = classes + ['typeahead'] %}{% endif %}
+    {% if field.type == 'JSONTextField' %}{% set classes = classes + ['font-monospace'] %}{% endif %}
+    {% if field.type in ('MultiCheckboxField', 'RadioField') %}
+        {% set classes = classes + ['list-unstyled'] %}{% endif %}
+    {% if field.errors %}{% set classes = classes + ['is-invalid'] %}{% endif %}
+
+    {% if field.description and description_on_top %}
+        <div class="form-text">{{ field.description }}</div>
+    {% endif %}
+
+    {% if obj and field.id == 'id' %}
+        {{ field(class='form-control', readonly='') }}
+    {% elif field.type == 'BooleanField' %}
+        <div class="form-check">
+            {{ field(class='form-check-input') }}
+        </div>
+    {% elif field.type == 'DateField' %}
+        {{ field(class=classes|join(' '), spellcheck='false', data_date_format='yyyy/mm/dd', **kwargs) }}
+    {% else %}
+        {{ field(class=classes|join(' '), spellcheck='false', **kwargs) }}
+    {% endif %}
+
+    {% if field.description and not description_on_top %}
+        <div class="form-text">{{ field.description }}</div>
+    {% endif %}
+ 
+    {% for error in field.errors %}
+        <div class="invalid-feedback">{{ error }}</div>
+    {% endfor %}
+{% endmacro %}
+
+{% macro render_subform(subform) %}
+    <div class="subform-wrapper py-3 border-top mt-3">
+        {{ subform.csrf_token }}
+        {% for subfield in subform if 'csrf_token' not in subfield.id %}
+            <div class="row subform-row mb-2">
+                {% if subfield.type == 'MapField' %}
+                    <div class="col-12">
+                        {{ subfield.label(class='form-label small' + (' required' if subfield.flags.required else '')) }}
+                        <div id="map"></div>
+                        {% if subfield.description %}
+                            <div class="form-text">{{ subfield.description }}</div>{% endif %}
+                    </div>
+                {% else %}
+                    <div class="col-12">
+                        {{ subfield.label(class='form-label mb-1 small' + (' required' if subfield.flags.required else '')) }}
+                        {{ render_field(subfield) }}
+                    </div>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+{% endmacro %}
+
+{% macro render_flat_subform(subform) %}
+    <div class="subform-wrapper">
+        {{ subform.csrf_token }}
+        <div class="d-flex flex-row flex-wrap">
+            {% for subfield in subform if 'csrf_token' not in subfield.id %}
+                <div class="flex-grow-1 me-3" style="min-width: 200px;">
+                    {{ subfield.label(class='form-label mb-1 small' + (' required' if subfield.flags.required else '')) }}
+                    {{ render_field(subfield) }}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro creator_subform(subform) %}
+    <div class="subform-wrapper pt-3 border-top">
+        {{ subform.csrf_token }}
+        <div class="row mb-3">
+            <div class="col-12">
+                {{ subform.orcid.label(class='form-label mb-1 small' + (' required' if subform.orcid.flags.required else '')) }}
+                {{ render_field(subform.orcid) }}
+            </div>
+        </div>
+        <div class="row {% if subform.contributor_type %}mb-3{% endif %}">
+            <div class="col-4">
+                {{ subform.first_name.label(class='form-label mb-1 small' + (' required' if subform.first_name.flags.required else '')) }}
+                {{ render_field(subform.first_name) }}
+            </div>
+            <div class="col-4">
+                {{ subform.last_name.label(class='form-label mb-1 small' + (' required' if subform.last_name.flags.required else '')) }}
+                {{ render_field(subform.last_name) }}
+            </div>
+            <div class="col-4">
+                {{ subform.affiliation.label(class='form-label mb-1 small' + (' required' if subform.affiliation.flags.required else '')) }}
+                {{ render_field(subform.affiliation) }}
+            </div>
+        </div>
+        {% if subform.contributor_type %}
+            <div class="row">
+                <div class="col-12">
+                    {{ subform.contributor_type.label(class='form-label mb-1 small' + (' required' if subform.contributor_type.flags.required else '')) }}
+                    {{ render_field(subform.contributor_type) }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro render_field_list(field_list) %}
+    <div class="row mt-4">
+        <div class="col-2 text-end">
+            {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
+        </div>
+        <div class="col-9">
+            <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+                {% for entry in field_list.entries %}
+                    <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
+                        <div class="col-11">
+                            {% if entry.type == 'FormField' %}
+                                {{ render_subform(entry) }}
+                            {% else %}
+                                {{ render_field(entry) }}
+                            {% endif %}
+                        </div>
+                        <div class="col-1 d-flex align-items-end justify-content-between">
+                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                                    class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                                    style="width: 30px; height:30px; padding: 0;">
+                                &#128465;
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if field_list.description %}
+                <div class="form-text">{{ field_list.description }}</div>{% endif %}
+            <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+                    class="btn btn-outline-info btn-sm mt-1">
+                Add
+                Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
+            </button>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro render_creator_field_list(field_list) %}
+    <div class="row mt-4">
+        <div class="col-2 text-end">
+            {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
+        </div>
+        <div class="col-9">
+            {% if field_list.description %}
+                <div class="form-text">{{ field_list.description }}</div>
+            {% endif %}
+            <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+                {% for entry in field_list.entries %}
+                    <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
+                        <div class="col-11">
+                            {{ creator_subform(entry) }}
+                        </div>
+                        <div class="col-1 d-flex align-items-end justify-content-between">
+                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                                    class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                                    style="width: 30px; height:30px; padding: 0;">
+                                &#128465;
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+                    class="btn btn-outline-info btn-sm mt-1">
+                Add
+                Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
+            </button>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro render_flat_field_list(field_list) %}
+    <div class="row mt-4">
+        <div class="col-2 text-end">
+            {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
+        </div>
+        <div class="col-9">
+            <div class="d-flex flex-wrap field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+                {% for entry in field_list.entries %}
+                    <div class="d-flex align-items-start me-3 field_list_row col-12"
+                         id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
+                        <div class="me-2 col-11">
+                            {% if entry.type == 'FormField' %}
+                                {{ render_flat_subform(entry) }}
+                            {% else %}
+                                {{ render_field(entry) }}
+                            {% endif %}
+                        </div>
+                        <div class="col-1 d-flex align-items-end justify-content-between" style="height: 100%">
+                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                                    class="ms-2 btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                                    style="width: 30px; height:30px; padding: 0;">
+                                &#128465;
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if field_list.description %}
+                <div class="form-text">{{ field_list.description }}</div>{% endif %}
+            <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+                    class="btn btn-outline-info btn-sm mt-1">
+                Add
+                Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
+            </button>
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro field_row(field, obj=none) %}
+    <div class="row align-items-baseline mt-4">
+        <div class="col-2 text-end">
+            {{ field.label(class='form-label' + (' required' if field.flags.required else ''), style='font-size: 1.3rem;') }}
+        </div>
+        <div class="col-9">
+            {% if field.type == 'FieldList' %}
+                <div class="mt-n4"> {{ render_field_list(field) }} </div>
+            {% elif field.type == 'FormField' %}
+                <div class="mt-n4"> {{ render_subform(field) }} </div>
+            {% else %}
+                {{ render_field(field, obj, **kwargs) }}
+            {% endif %}
+        </div>
+    </div>
+{% endmacro %}

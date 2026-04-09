@@ -52,6 +52,27 @@ pre {
     background-color: #357B83;
 }
 
+.field_list_wrapper .field_list_row:only-child .btn-remove-field-list-entry {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.field_list_row:not(:last-child) {
+    margin-bottom: 20px;
+}
+
+.subform-row:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+label.required::after {
+    content: "*";
+    color: red;
+    font-weight: bold;
+    position: absolute;
+    margin-left: 5px;
+}
 
 /* Modal styling */
 .modal {
