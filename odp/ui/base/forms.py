@@ -4,9 +4,9 @@ from datetime import datetime
 
 from flask import Flask, session
 from wtforms import BooleanField, DateField, FloatField, Form, SelectField, SelectMultipleField, StringField, \
-    TextAreaField, ValidationError
+    TextAreaField, ValidationError, FormField, FieldList, FileField
 from wtforms.csrf.session import SessionCSRF
-from wtforms.validators import optional, email, input_required
+from wtforms.validators import optional, email, input_required, data_required
 from wtforms.widgets import CheckboxInput, ListWidget
 
 
