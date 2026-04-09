@@ -3,54 +3,51 @@
 {% from 'controls.j2' import pagination, check_all %}
 
 {% set pagination %}
-    <div class="my-4 mx-3">
-        {{ pagination(
-            result.page,
-            result.pages,
-            result.total,
-            items_singular='dataset',
-            items_plural='datasets',
-            text_color='light',
-            **dict(request.args)
-        ) }}
-    </div>
+<div class="my-4 mx-3">
+    {{ pagination(
+    result.page,
+    result.pages,
+    result.total,
+    items_singular='dataset',
+    items_plural='datasets',
+    text_color='light',
+    **dict(request.args)
+    ) }}
+</div>
 {% endset %}
 
 {% block main %}
-    <main class="flex-grow-1 m-5">
-        <div class="container-xxl">
-            <div class="d-flex justify-content-center align-items-start">
-                <div class="flex-grow-evenly">
-                    {{ facet_panel(facet_fields, result.facets, **dict(request.args)) }}
+<main class="flex-grow-1 m-5">
+    <div>
+        <div class="d-flex justify-content-center align-items-start">
+            <div class="flex-grow-evenly">
+                {{ facet_panel(facet_fields, result.facets, **dict(request.args)) }}
+            </div>
+            <div class="mx-5 w-50">
+                <div class="mb-5">
+                    {{ filtered_search_proxy(form) }}
                 </div>
-                <div class="mx-5 w-50">
-                    <div class="mb-5">
-                        {{ filtered_search_proxy(form) }}
-                    </div>
-                    {{ pagination }}
-{#                    <div class="d-flex justify-content-end p-3">#}
-{#                        {{ check_all(right=true) }}#}
-{#                    </div>#}
-                    <div class="mb-5">
-                        {{ result_list(result['items']) }}
-                    </div>
-                    {% if result.total > 0 %}
-                        {{ pagination }}
-                    {% endif %}
+                {{ pagination }}
+                <div class="mb-5">
+                    {{ result_list(result['items'], show_bulk_download_options,audit_form) }}
                 </div>
-                <div class="flex-grow-evenly">
-                    {{ filter_panel(form, facet_fields) }}
-                </div>
+                {% if result.total > 0 %}
+                {{ pagination }}
+                {% endif %}
+            </div>
+            <div class="flex-grow-evenly">
+                {{ filter_panel(form, facet_fields) }}
             </div>
         </div>
-    </main>
+    </div>
+</main>
 {% endblock %}
 
 {% block scripts %}
-    {{ super() }}
-    <script>
-        createFilterMap();
-        initCheckAll();
-        initFilteredSearchProxy('rank desc');
-    </script>
+{{ super() }}
+<script>
+    createFilterMap();
+    initCheckAll();
+    initFilteredSearchProxy('rank desc');
+</script>
 {% endblock %}
