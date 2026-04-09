@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% from 'catalog.j2' import render_metadata %}
+{% from 'catalog.j2' import render_metadata, download_audit_modal %}
 
 {% block web_title %}
     {{ super() }} |
@@ -13,10 +13,12 @@
     <main class="flex-grow-1 m-3">
         <div class="container-lg">
             <div class="m-5 p-5 pt-0">
-                {{ render_metadata(record, current_user, sdg_vocab) }}
+                {{ render_metadata(record, current_user, facet_values=facet_values) }}
             </div>
         </div>
     </main>
+
+    {{ download_audit_modal(audit_form) }}
 {% endblock %}
 
 {% block scripts %}
