@@ -138,6 +138,7 @@ class ODPUserClient(ODPBaseClient):
             files: dict | None,
             params: dict,
             headers: dict,
+            stream: bool = False,
     ) -> requests.Response:
         """Send a request to the API with the user's access token."""
         return self.oauth.hydra.request(
