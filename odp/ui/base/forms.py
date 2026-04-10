@@ -151,8 +151,8 @@ class LicenseForm(BaseForm):
 
 
 class DateRangeForm(BaseForm):
-    start_date = DateStringField(label='Start date', render_kw={"data-date-format": "yyyy/mm/dd"})
-    end_date = DateStringField(label='End date', render_kw={"data-date-format": "yyyy/mm/dd"})
+    start_date = DateStringField(label='Start date')
+    end_date = DateStringField(label='End date')
 
 
 class RelatedIdentifiersForm(BaseForm):

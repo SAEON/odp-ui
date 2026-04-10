@@ -11,10 +11,10 @@ $(document).ready(() => {
         populateRORInfo($(this))
     });
 
-    flatpickr('input[type="date"]', {
-        dateFormat: "Y/m/d",
-        allowInput: true
-    });
+    // flatpickr('input[type="date"]', {
+    //     dateFormat: "Y/m/d",
+    //     allowInput: true
+    // });
 });
 
 function initSelect2Fields(elementIds) {
