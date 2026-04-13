@@ -288,6 +288,8 @@ function downloadSelectedRecords(event, _buttonEl, recordId) {
         }
 
         if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+        const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
+        if (loader) loader.style.display = 'none';
 
         populateDownloadFormFromCache('download-name', 'download-email', 'organisation');
         if (downloadModalInstance) downloadModalInstance.show();
