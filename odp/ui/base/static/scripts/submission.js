@@ -12,7 +12,7 @@ $(document).ready(() => {
     });
 
     flatpickr('input[type="date"]', {
-        dateFormat: "Y/m/d",
+        dateFormat: "Y-m-d",
         allowInput: true
     });
 });
@@ -54,7 +54,7 @@ function populateOrcidInfo(orcidInput) {
                 }
                 const employment = data['activities-summary']?.employments?.['employment-summary']?.[0];
                 if (employment) {
-                    $(`#${baseId}affiliation`).val(employment.organization.name).trigger('change');
+                    $(`#${baseId}affiliation_name`).val(employment.organization.name).trigger('change');
                 }
                 orcidInput.removeClass('is-invalid').addClass('is-valid');
             },
@@ -94,7 +94,7 @@ function populateRORInfo(rorInput) {
                 const institutionName = displayNameObj ? displayNameObj.value : '';
 
                 if (institutionName) {
-                    $(`#${baseId}affiliation`).val(institutionName).trigger('change');
+                    $(`#${baseId}affiliation_name`).val(institutionName).trigger('change');
                 }
 
                 rorInput.removeClass('is-invalid').addClass('is-valid');

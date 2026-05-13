@@ -77,7 +77,7 @@
                 {{ render_field(subform.orcid) }}
             </div>
         </div>
-        <div class="row {% if subform.contributor_type %}mb-3{% endif %}">
+        <div class="row {% if subform.contributor_type or subform.email %}mb-3{% endif %}">
             <div class="col-4">
                 {{ subform.first_name.label(class='form-label mb-1 small' + (' required' if subform.first_name.flags.required else '')) }}
                 {{ render_field(subform.first_name) }}
@@ -87,16 +87,24 @@
                 {{ render_field(subform.last_name) }}
             </div>
             <div class="col-4">
-                {{ subform.affiliation.label(class='form-label mb-1 small' + (' required' if subform.affiliation.flags.required else '')) }}
-                {{ render_field(subform.affiliation) }}
+                {{ subform.affiliation_name.label(class='form-label mb-1 small' + (' required' if subform.affiliation_name.flags.required else '')) }}
+                {{ render_field(subform.affiliation_name) }}
             </div>
         </div>
-        {% if subform.contributor_type %}
+        {% if subform.contributor_type or subform.email %}
             <div class="row">
-                <div class="col-12">
-                    {{ subform.contributor_type.label(class='form-label mb-1 small' + (' required' if subform.contributor_type.flags.required else '')) }}
-                    {{ render_field(subform.contributor_type) }}
-                </div>
+                {% if subform.contributor_type %}
+                    <div class="{% if subform.email %}col-6{% else %}col-12{% endif %}">
+                        {{ subform.contributor_type.label(class='form-label mb-1 small' + (' required' if subform.contributor_type.flags.required else '')) }}
+                        {{ render_field(subform.contributor_type) }}
+                    </div>
+                {% endif %}
+                {% if subform.email %}
+                    <div class="{% if subform.contributor_type %}col-6{% else %}col-12{% endif %}">
+                        {{ subform.email.label(class='form-label mb-1 small' + (' required' if subform.email.flags.required else '')) }}
+                        {{ render_field(subform.email) }}
+                    </div>
+                {% endif %}
             </div>
         {% endif %}
     </div>

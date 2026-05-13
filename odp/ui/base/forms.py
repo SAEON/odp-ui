@@ -44,6 +44,15 @@ class DateStringField(DateField):
         self.data = datetime.strptime(value, '%Y-%m-%d') if value is not None else None
 
 
+class SubmissionDateField(DateField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = datetime.strptime(valuelist[0], '%Y-%m-%d').date()
+
+    def process_data(self, value):
+        self.data = datetime.strptime(value, '%Y-%m-%d').date() if value is not None else None
+
+
 class JSONTextField(TextAreaField):
     def process_data(self, value):
         self.data = json.dumps(value, indent=4, ensure_ascii=False)
@@ -116,7 +125,7 @@ class CreatorForm(BaseForm):
     orcid = StringField(label='ORCID')
     first_name = StringField(label='First Name', validators=[data_required()])
     last_name = StringField(label='Last Name', validators=[data_required()])
-    affiliation = StringField(label='Affiliation', validators=[data_required()])
+    affiliation_name = StringField(label='Affiliation', validators=[data_required()])
 
 
 class ContributorForm(CreatorForm):
@@ -142,6 +151,7 @@ class ContributorForm(CreatorForm):
         ('Supervisor', 'Supervisor'),
         ('WorkPackageLeader', 'Work Package Leader')
     ])
+    email = StringField(label='Email')
 
     def validate_email(self, field):
         if self.contributor_type.data == 'ContactPerson':
@@ -178,8 +188,8 @@ class LicenseForm(BaseForm):
 
 
 class DateRangeForm(BaseForm):
-    start_date = DateStringField(label='Start date', render_kw={"data-date-format": "yyyy/mm/dd"})
-    end_date = DateStringField(label='End date', render_kw={"data-date-format": "yyyy/mm/dd"})
+    start_date = SubmissionDateField(label='Start date')
+    end_date = SubmissionDateField(label='End date')
 
 
 class RelatedIdentifiersForm(BaseForm):
