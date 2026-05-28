@@ -3,7 +3,7 @@
 
 {% block main %}
     <main class="flex-grow-1 m-5">
-        <div class="container-xxl">
+        <div class="container-xxl mims-container">
             {% if current_user.is_authenticated %}
                 <span class="mb-4 mx-2" style="font-size: 1.4em; color: darkslategrey; font-weight: bold;">Submissions</span>
                 {% call(submission) render_table(submissions, 'Title', 'Status') %}

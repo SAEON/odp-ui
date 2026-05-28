@@ -185,7 +185,7 @@
 {% endmacro %}
 
 
-{% macro render_form(form, obj, col2_fields) %}
+{% macro render_form(form, obj, col2_fields, full_width=false) %}
     {# Render a form and populate fields from obj, if provided.
         To override the default submit target, pass submit_target=url.
         To override the default cancel target, pass cancel_target=url.
@@ -201,7 +201,7 @@
     >
         {{ form.csrf_token }}
         <div class="row">
-            {% set form_col_class = "col-6 m-auto" if not col2_fields else "col-5" %}
+            {% set form_col_class = ("col-12" if full_width else "col-6 m-auto")  if not col2_fields else "col-5" %}
             <div class="{{ form_col_class }}">
                 {% for field in form if field.id != 'csrf_token' and field.id not in col2_fields %}
                     {% if field.type == 'FieldList' %}
@@ -227,7 +227,7 @@
                 </div>
             {% endif %}
         </div>
-        <div class="mt-4 {{ "col-6 mx-auto" if not col2_fields }}">
+        <div class="mt-4 {{ ("col-12" if full_width else "col-6 mx-auto") if not col2_fields }}">
             <button type="submit" class="btn btn-outline-primary btn-action">
                 Save
             </button>

@@ -118,6 +118,11 @@
             <li>
                 <hr class="dropdown-divider">
             </li>
+        {% elif 'https' in view %}
+            <li><a href="{{ view }}"
+                   class="dropdown-item {{ 'active' if highlight == view }}">
+                {{ title }}
+            </a></li>
         {% else %}
             <li><a href="{{ url_for(view + '.index') }}"
                    class="dropdown-item {{ 'active' if highlight == view }}">
