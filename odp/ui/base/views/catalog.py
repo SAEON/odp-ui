@@ -3,7 +3,7 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, url_for, Response
+from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, stream_with_context, url_for, Response
 
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
@@ -16,7 +16,6 @@ bp = Blueprint(
 )
 
 client_id = api.client_id.split('.')[0]
-BULK_DOWNLOAD_CLIENTS = ['MIMS']
 
 @bp.app_template_filter()
 def doi_title(doi: str) -> str:
@@ -146,7 +145,7 @@ def index():
 
     facet_fields = _format_facets(facet_fields)
 
-    show_bulk_download = client_id in BULK_DOWNLOAD_CLIENTS
+    show_bulk_download = client_id in current_app.config.get('BULK_DOWNLOAD_CLIENTS', ['MIMS'])
 
     return render_template(
         'catalog_index.html',
@@ -207,7 +206,7 @@ def view(id):
         record=record,
         facet_values=facet_values,
         audit_form=DownloadAuditForm(),
-        show_bulk_download_options=(client_id in BULK_DOWNLOAD_CLIENTS)
+        show_bulk_download_options=(client_id in current_app.config.get('BULK_DOWNLOAD_CLIENTS', ['MIMS']))
     )
 
 
@@ -248,7 +247,7 @@ def subset_record_list():
         'catalog_subset.html',
         catalog_record_list=catalog_record_list,
         audit_form=DownloadAuditForm(),
-        show_bulk_download_options=(client_id in BULK_DOWNLOAD_CLIENTS),
+        show_bulk_download_options=(client_id in current_app.config.get('BULK_DOWNLOAD_CLIENTS', ['MIMS'])),
         facet_values={},
     )
 
@@ -275,7 +274,6 @@ def download_audit():
     }
 
     try:
-        from flask import stream_with_context
         api_response = cli.stream_post('/catalog/generate-zip-bundle', payload)
         
         def generate():

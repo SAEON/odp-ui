@@ -1,3 +1,14 @@
+function showNotification(message, type = 'warning') {
+    const container = document.querySelector('main .container, main, .container') || document.body;
+    const div = document.createElement('div');
+    div.className = `alert alert-${type} alert-dismissible fade show mt-2`;
+    div.setAttribute('role', 'alert');
+    div.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    container.prepend(div);
+    setTimeout(() => div.remove(), 5000);
+}
+
+// the user-drawn box on the filter-by-location map
 let box;
 const boxColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--bs-info');
@@ -269,7 +280,7 @@ function downloadSelectedRecords(event, _buttonEl, recordId) {
     try {
         const selectedIds = recordId !== '' ? [recordId] : getSelectedIds();
         if (selectedIds.length === 0) {
-            alert('Please select one or more records to download.');
+            showNotification('Please select one or more records to download.');
             return;
         }
 
@@ -294,7 +305,7 @@ function downloadSelectedRecords(event, _buttonEl, recordId) {
         if (downloadModalInstance) downloadModalInstance.show();
 
     } catch {
-        alert("An error occurred. Please try again.");
+        showNotification('An error occurred. Please try again.', 'danger');
     }
 }
 
@@ -302,13 +313,13 @@ function createAndDisplayLink(event) {
     event.preventDefault();
     const targetInput = document.getElementById('record-subset-link');
     if (!targetInput) {
-        alert("An error occurred while generating the link.");
+        showNotification('An error occurred while generating the link.', 'danger');
         return;
     }
 
     const selectedIds = getSelectedIds();
     if (selectedIds.length === 0) {
-        alert("Please select at least one record.");
+        showNotification('Please select at least one record.');
         return;
     }
     const redirectUrl = buildRedirectUrl(selectedIds);
@@ -328,7 +339,7 @@ function copyToClipboard(elementSelector) {
                 }, 2000);
             }
         }).catch(() => {
-            alert('Failed to copy text. Please try manually.');
+            showNotification('Failed to copy text. Please try manually.');
         });
     }
 }
