@@ -3,13 +3,13 @@
 {% from 'web_content.j2' import render_field, render_subform, render_flat_subform, render_field_list,
 render_creator_field_list, render_flat_field_list, field_row %}
 
-
 {% block main %}
     <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
         <div class="container-sm">
             <div class="col-10 m-auto mb-4">
-                <h2>{% if show_steps %}Step 1 of 2: {% endif %}Metadata Submission</h2>
-                <p>
+                <span style="font-size: 1.4em; color: darkslategrey; font-weight: bold">{% if show_steps %}Step 1 of
+                    2: {% endif %}Metadata Submission</span>
+                <p style="color: darkslategrey">
                     Fill in the fields below to describe your data, this will enable your data to be citable,
                     discoverable, searchable and reusable and is an important step in the archiving and publication of
                     data. If you are unsure about how to answer any of the fields you can contact us on
@@ -24,7 +24,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                         <div class="col-10 m-auto">
                             <div class="mt-5 mb-4 d-flex align-items-center">
                                 <h5 class="mb-0 me-3"
-                                    style="font-size: 1.6rem; font-weight: 600; color: rgb(var(--bs-primary-rgb));">
+                                    style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
                                     Required
                                     Fields</h5>
                                 <hr class="flex-grow-1 m-0 border-secondary">
@@ -38,7 +38,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                             {{ render_creator_field_list(form.contributors) }}
                             <div class="row align-items-baseline mt-4">
                                 <div class="col-2 text-end">
-                                    {{ form.geographic_extent.label(class='form-label', style='font-size: 1.3rem;') }}
+                                    {{ form.geographic_extent.label(class='form-label', style='font-size: 1rem;') }}
                                 </div>
                                 <div class="col-9">
                                     <div class="subform-wrapper py-3">
@@ -112,7 +112,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                             </div>
                             <div class="mt-5 mb-4 d-flex align-items-center">
                                 <h5 class="mb-0 me-3"
-                                    style="font-size: 1.6rem; font-weight: 600; color: rgb(var(--bs-primary-rgb));">
+                                    style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
                                     Recommended Fields</h5>
                                 <hr class="flex-grow-1 m-0 border-secondary">
                             </div>
@@ -165,6 +165,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
     {{ super() }}
     {{ select2_css() }}
     {{ flatpickr_css() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/submission.css') }}">
 {% endblock %}
 
 

@@ -5,7 +5,7 @@
     <main class="flex-grow-1 m-5">
         <div class="container-xxl">
             {% if current_user.is_authenticated %}
-                <h2>Submissions</h2>
+                <span class="mb-4 mx-2" style="font-size: 1.4em; color: darkslategrey; font-weight: bold;">Submissions</span>
                 {% call(submission) render_table(submissions, 'Title', 'Status') %}
                     <td>
                         {{ submission.title }}

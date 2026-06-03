@@ -5,7 +5,7 @@
     <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
         <div class="container-sm">
             <div class="row col-6 m-auto">
-                <h2>{{ submission.data['title'] }}</h2>
+                <span style="font-size: 1.4em; color: darkslategrey; font-weight: bold">{{ submission.data['title'] }}</span>
                 <div>
                     <div class="mt-4">
                         {% if not buttons_enabled %}
@@ -16,7 +16,7 @@
                                 it has been published. You will no longer be able to edit this submission.
                             </div>
                         {% endif %}
-                        Status: <span
+                        <span class="form-label">Status: </span><span
                             class="badge bg-{{ 'info' if buttons_enabled else 'success' }}">{{ submission.status }}</span>
                     </div>
                 </div>
@@ -58,6 +58,11 @@
             </div>
         </div>
     </main>
+{% endblock %}
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/submission.css') }}">
 {% endblock %}
 
 {% block scripts %}

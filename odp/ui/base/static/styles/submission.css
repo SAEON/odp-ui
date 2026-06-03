@@ -1,0 +1,10 @@
+.form-label {
+    font-size: 1em !important;
+    font-weight: bold;
+    color: rgb(var(--bs-primary-rgb));
+}
+
+.form-text {
+    font-size: 1em;
+    margin-bottom: 10px;
+}
