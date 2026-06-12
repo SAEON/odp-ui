@@ -129,9 +129,19 @@ class ODPUserClient(ODPBaseClient):
     def token(self) -> dict:
         return self.oauth.fetch_token('hydra')
 
-    def _send_request(self, method: str, url: str, data: dict, params: dict) -> requests.Response:
-        """Send a request to the API with the user's access token."""
-        return self.oauth.hydra.request(method, url, json=data, params=params)
+    def _send_request(
+            self,
+            method: str,
+            url: str,
+            data: dict | None,
+            files: dict | None,
+            params: dict,
+            headers: dict,
+            stream: bool = False,
+    ) -> requests.Response:
+        return self.oauth.hydra.request(
+            method, url, json=data, files=files, params=params, headers=headers, stream=stream
+        )
 
     def _signup(self):
         """Initiate signup.
