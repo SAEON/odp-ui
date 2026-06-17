@@ -123,9 +123,27 @@ class DownloadAuditForm(BaseForm):
 
 class CreatorForm(BaseForm):
     orcid = StringField(label='ORCID')
-    first_name = StringField(label='First Name', validators=[data_required()])
-    last_name = StringField(label='Last Name', validators=[data_required()])
+    first_name = StringField(label='First Name')
+    last_name = StringField(label='Last Name')
     affiliation_name = StringField(label='Affiliation', validators=[data_required()])
+
+
+class FundingReferencesForm(BaseForm):
+    funder_name = StringField(label='Funder name')
+    funder_identifier = StringField(label='Funder identifier')
+    funder_identifier_type = SelectField(
+        label='Funder identifier type',
+        choices=[
+            "ISNI",
+            "GRID",
+            "Crossref Funder ID",
+            "ROR",
+            "Other"
+        ],
+        default="ISNI"
+    )
+    award_number = StringField(label='Award number')
+    award_title = StringField(label='Award title')
 
 
 class ContributorForm(CreatorForm):
@@ -160,17 +178,13 @@ class ContributorForm(CreatorForm):
 
 
 class GeographicExtentForm(BaseForm):
-    map = MapField(label='Draw a bounding box or specify a point.')
-    east_bound_longitude = FloatField(label='East Bound Longitude')
-    north_bound_latitude = FloatField(label='North Bound Latitude')
-    south_bound_latitude = FloatField(label='South Bound Latitude')
-    west_bound_longitude = FloatField(label='West Bound Longitude')
-    point_latitude = FloatField(label='Point Latitude')
-    point_longitude = FloatField(label='Point Longitude')
-    location_name = StringField(
-        label='Geographic location',
-        description='Name of the geographic area covered by the dataset.'
-    )
+    map = MapField(label="", description='Draw a bounding box OR specify a point.')
+    east_bound_longitude = FloatField(label='East Bound Longitude', validators=[optional()])
+    north_bound_latitude = FloatField(label='North Bound Latitude', validators=[optional()])
+    south_bound_latitude = FloatField(label='South Bound Latitude', validators=[optional()])
+    west_bound_longitude = FloatField(label='West Bound Longitude', validators=[optional()])
+    point_latitude = FloatField(label='Point Latitude', validators=[optional()])
+    point_longitude = FloatField(label='Point Longitude', validators=[optional()])
 
 
 class LicenseForm(BaseForm):
@@ -179,7 +193,9 @@ class LicenseForm(BaseForm):
         ('https://creativecommons.org/licenses/by/4.0/', 'Attribution 4.0 International (CC BY 4.0)'),
         ('https://creativecommons.org/licenses/by-sa/4.0/', 'Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)'),
         ('Embargo', 'Embargo')
-    ])
+    ],
+     description="Conditions under which the dataset should be shared. Read more about Creative Commons licenses <a href='https://creativecommons.org/chooser/'>here</a>."
+     )
     embargo_reason = StringField(label='Embargo Reason')
 
     def validate_embargo_reason(self, field):
@@ -188,12 +204,12 @@ class LicenseForm(BaseForm):
 
 
 class DateRangeForm(BaseForm):
-    start_date = SubmissionDateField(label='Start date')
-    end_date = SubmissionDateField(label='End date')
+    start_date = SubmissionDateField(label='Start date', validators=[data_required()])
+    end_date = SubmissionDateField(label='End date', validators=[data_required()])
 
 
 class RelatedIdentifiersForm(BaseForm):
-    related_identifier = StringField(label='Related Identifier')
+    related_identifier = StringField(label='Related resource')
     relationship_type = SelectField(
         label='Relationship type',
         choices=[
@@ -242,22 +258,24 @@ class VerticalExtentForm(BaseForm):
 
 
 class SubmissionForm(BaseForm):
-    title = StringField(label='Title', description='Title of the data submission', validators=[data_required()])
+    title = StringField(label='Title', description='Dataset title.', validators=[data_required()])
     abstract = TextAreaField(
         label='Description: Abstract',
-        description='Description of the data submission. The Abstract should include enough detail to fully explain the context of the dataset.',
+        description='Description of the dataset. The Abstract should include enough detail to fully explain the context of the dataset.',
         validators=[data_required()]
     )
     methods = TextAreaField(
         label='Description: Methods',
-        description='Detailed provenance on how the dataset was generated including methods applied.',
+        description='Detailed provenance on how the dataset was produced including methods applied.',
         validators=[data_required()]
     )
     instruments = SelectMultipleField(
         label='Instruments',
-        description='Type in the instrument used, if applicable, and it will provide a list of available keywords.',
+        description='Type in the instrument used, if applicable, and it will provide a list of available keywords.')
+    keywords = SelectMultipleField(
+        label='Keywords',
+        description='Select applicable keywords from a fixed vocabulary of earth science topics. Start typing to see the available list.',
         validators=[data_required()])
-    keywords = SelectMultipleField(label='Keywords', validators=[data_required()])
     creators = FieldList(
         FormField(CreatorForm),
         label='Creators',
@@ -271,13 +289,17 @@ class SubmissionForm(BaseForm):
         description='Other parties who contributed to the data, including a contact person. Tip: If you fill in your ORCID ID the subsequent fields will auto-populate.'
     )
     geographic_extent = FormField(GeographicExtentForm, label='Geographic Extent')
+    location_name = StringField(
+        label='Geographic location',
+        description='Name of the geographic area covered by the dataset.'
+    )
     spatial_resolution = StringField(
         label='Spatial Resolution',
         description='Provide the spatial resolution for the dataset - this is only applicable to grid or imagery data.'
     )
     reference_system = StringField(
         label='Reference System',
-        description='Provide the spatial and temporal reference system used in the data submission - this is only applicable to projection data, eg WGS84.'
+        description='Provide the spatial or coordinate reference system used in the data submission - this is only applicable to projection data, eg WGS84.'
     )
     vertical_extent = FormField(
         VerticalExtentForm,
@@ -286,8 +308,8 @@ class SubmissionForm(BaseForm):
     )
     date_range = FormField(
         DateRangeForm,
-        label='Date Range',
-        description='Time period covered by the content of the dataset'
+        label='Temporal coverage dates',
+        description='Time period covered by the content of the dataset.'
     )
     project = FieldList(
         StringField(),
@@ -296,17 +318,15 @@ class SubmissionForm(BaseForm):
         description='Project or collection that this dataset falls under, if applicable.'
     )
     related_identifiers = FieldList(
-        FormField(
-            RelatedIdentifiersForm,
-            label='Related resources'
-        ),
+        FormField(RelatedIdentifiersForm),
+        label='Related Resources',
         min_entries=1,
-        description='Provide any relevant links for related resources as well as its relationship to this data.'
+        description='Include links or DOIs for related resources and choose the relationship type.'
     )
+    funding_reference = FieldList(FormField(FundingReferencesForm), min_entries=1, label='Funding References')
     license = FormField(
         LicenseForm,
-        label='License',
-        description='Conditions under which the data submission should be shared. Our recommended license is CC-BY https://creativecommons.org/share-your-work/cclicenses/.'
+        label='License'
     )
 
 

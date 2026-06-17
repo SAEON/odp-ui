@@ -25,7 +25,7 @@
     {% if field.description and not description_on_top %}
         <div class="form-text">{{ field.description }}</div>
     {% endif %}
- 
+
     {% for error in field.errors %}
         <div class="invalid-feedback">{{ error }}</div>
     {% endfor %}
@@ -36,19 +36,10 @@
         {{ subform.csrf_token }}
         {% for subfield in subform if 'csrf_token' not in subfield.id %}
             <div class="row subform-row mb-2">
-                {% if subfield.type == 'MapField' %}
-                    <div class="col-12">
-                        {{ subfield.label(class='form-label small' + (' required' if subfield.flags.required else '')) }}
-                        <div id="map"></div>
-                        {% if subfield.description %}
-                            <div class="form-text">{{ subfield.description }}</div>{% endif %}
-                    </div>
-                {% else %}
-                    <div class="col-12">
-                        {{ subfield.label(class='form-label mb-1 small' + (' required' if subfield.flags.required else '')) }}
-                        {{ render_field(subfield) }}
-                    </div>
-                {% endif %}
+                <div class="col-12">
+                    {{ subfield.label(class='form-label mb-1 small' + (' required' if subfield.flags.required else '')) }}
+                    {{ render_field(subfield) }}
+                </div>
             </div>
         {% endfor %}
     </div>
@@ -116,6 +107,9 @@
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
         <div class="col-9">
+            {% if field_list.description %}
+                <div class="form-text">{{ field_list.description }}</div>
+            {% endif %}
             <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
                 {% for entry in field_list.entries %}
                     <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
@@ -136,8 +130,6 @@
                     </div>
                 {% endfor %}
             </div>
-            {% if field_list.description %}
-                <div class="form-text">{{ field_list.description }}</div>{% endif %}
             <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
                     class="btn btn-outline-info btn-sm mt-1">
                 Add
@@ -187,6 +179,9 @@
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
         <div class="col-9">
+            {% if field_list.description %}
+                <div class="form-text">{{ field_list.description }}</div>
+            {% endif %}
             <div class="d-flex flex-wrap field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
                 {% for entry in field_list.entries %}
                     <div class="d-flex align-items-start me-3 field_list_row col-12"
@@ -208,8 +203,6 @@
                     </div>
                 {% endfor %}
             </div>
-            {% if field_list.description %}
-                <div class="form-text">{{ field_list.description }}</div>{% endif %}
             <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
                     class="btn btn-outline-info btn-sm mt-1">
                 Add

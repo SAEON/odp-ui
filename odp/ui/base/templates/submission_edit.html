@@ -10,9 +10,9 @@ render_creator_field_list, render_flat_field_list, field_row %}
                 <span style="font-size: 1.4em; color: darkslategrey; font-weight: bold">{% if show_steps %}Step 1 of
                     2: {% endif %}Metadata Submission</span>
                 <p style="color: darkslategrey">
-                    Fill in the fields below to describe your data, this will enable your data to be citable,
-                    discoverable, searchable and reusable and is an important step in the archiving and publication of
-                    data. If you are unsure about how to answer any of the fields you can contact us on
+                    Fill in the fields below to describe your data, this will enable your data to be Findable,
+                    Accessible, Interoperable and Reusable (FAIR) and is an important step in the archiving and
+                    publication of data. If you are unsure about how to answer any of the fields you can contact us on
                     curation@saeon.nrf.ac.za.
                 </p>
             </div>
@@ -32,10 +32,23 @@ render_creator_field_list, render_flat_field_list, field_row %}
                             {{ field_row(form.title, submission) }}
                             {{ field_row(form.abstract, submission, rows=10) }}
                             {{ field_row(form.methods, submission, rows=10) }}
-                            {{ field_row(form.instruments, submission) }}
+                            <div class="row align-items-baseline mt-4">
+                                <div class="col-2 text-end">
+                                    {{ form.date_range.label(class='form-label', style='font-size: 1.3rem;') }}
+                                </div>
+                                <div class="col-9">
+                                    {{ render_flat_subform(form.date_range) }}
+                                </div>
+                            </div>
                             {{ field_row(form.keywords, submission) }}
                             {{ render_creator_field_list(form.creators) }}
                             {{ render_creator_field_list(form.contributors) }}
+                            <div class="mt-5 mb-4 d-flex align-items-center">
+                                <h5 class="mb-0 me-3"
+                                    style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
+                                    Recommended Fields</h5>
+                                <hr class="flex-grow-1 m-0 border-secondary">
+                            </div>
                             <div class="row align-items-baseline mt-4">
                                 <div class="col-2 text-end">
                                     {{ form.geographic_extent.label(class='form-label', style='font-size: 1rem;') }}
@@ -45,12 +58,8 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                         {{ form.geographic_extent.csrf_token }}
                                         <div class="row mb-3">
                                             <div class="col-12">
-                                                {{ form.geographic_extent.map.label(class='form-label mb-1 small' + ('
-                                            required'
-                                            if form.geographic_extent.map.flags.required else '')) }}
+                                                <div class="form-text">{{ form.geographic_extent.map.description }}</div>
                                                 <div id="map"></div>
-                                                {% if form.geographic_extent.map.description %}
-                                                    <div class="form-text">{{ form.geographic_extent.map.description }}</div>{% endif %}
                                             </div>
                                         </div>
                                         <div class="row mb-3">
@@ -85,7 +94,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                                 {{ render_field(form.geographic_extent.east_bound_longitude, description_on_top=false) }}
                                             </div>
                                         </div>
-                                        <div class="row mb-3">
+                                        <div class="row">
                                             <div class="col-6">
                                                 {{ form.geographic_extent.point_latitude.label(class='form-label mb-1 small'
                                             + ('
@@ -99,23 +108,11 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                                 {{ render_field(form.geographic_extent.point_longitude, description_on_top=false) }}
                                             </div>
                                         </div>
-                                        <div class="row">
-                                            <div class="col-12">
-                                                {{ form.geographic_extent.location_name.label(class='form-label mb-1 small'
-                                            + ('
-                                            required' if form.geographic_extent.location_name.flags.required else '')) }}
-                                                {{ render_field(form.geographic_extent.location_name, description_on_top=false) }}
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="mt-5 mb-4 d-flex align-items-center">
-                                <h5 class="mb-0 me-3"
-                                    style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
-                                    Recommended Fields</h5>
-                                <hr class="flex-grow-1 m-0 border-secondary">
-                            </div>
+                            {{ field_row(form.location_name, submission) }}
+                            {{ field_row(form.instruments, submission) }}
                             {{ field_row(form.spatial_resolution, submission) }}
                             {{ field_row(form.reference_system, submission) }}
                             <div class="row align-items-baseline mt-4">
@@ -126,22 +123,30 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                     {{ render_flat_subform(form.vertical_extent) }}
                                 </div>
                             </div>
-                            <div class="row align-items-baseline mt-4">
-                                <div class="col-2 text-end">
-                                    {{ form.date_range.label(class='form-label', style='font-size: 1.3rem;') }}
-                                </div>
-                                <div class="col-9">
-                                    {{ render_flat_subform(form.date_range) }}
-                                </div>
-                            </div>
                             {{ render_field_list(form.project) }}
                             {{ render_flat_field_list(form.related_identifiers) }}
                             <div class="row align-items-baseline mt-4">
+                                {{ form.funding_reference[0].csrf_token }}
+                                <div class="col-2 text-end">
+                                    {{ form.funding_reference.label(class='form-label', style='font-size: 1.3rem;') }}
+                                </div>
+                                <div class="col-9">
+                                    {{ render_field(form.funding_reference[0].funder_name, submission, true) }}
+                                </div>
+                            </div>
+                            <div class="row align-items-baseline mt-4">
+                                {{ form.license.csrf_token }}
                                 <div class="col-2 text-end">
                                     {{ form.license.label(class='form-label', style='font-size: 1.3rem;') }}
                                 </div>
                                 <div class="col-9">
-                                    {{ render_subform(form.license) }}
+                                    <div class="col-12">
+                                        {{ render_field(form.license.license, submission, true) }}
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        {{ form.license.embargo_reason.label(class='form-label mb-1 small') }}
+                                        {{ render_field(form.license.embargo_reason, submission) }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -181,7 +186,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
             const embargoReasonField = document.getElementById('license-embargo_reason');
 
             if (licenseSelect && embargoReasonField) {
-                const embargoReasonRow = embargoReasonField.closest('.row');
+                const embargoReasonRow = embargoReasonField.closest('.col-12');
 
                 function toggleEmbargoReason() {
                     if (licenseSelect.value === 'Embargo') {
