@@ -1,6 +1,8 @@
 $(document).ready(() => {
     setMap();
 
+    setupLicenseFields();
+
     initSelect2Fields(['keywords', 'instruments', 'eov_keywords', 'ecv_keywords', 'ebv_keywords', 'eav_keywords', 'place_keywords']);
 
     $(document).on('blur', 'input[id$="-orcid"]', function () {
@@ -25,6 +27,26 @@ function initSelect2Fields(elementIds) {
             $el.select2();
         }
     });
+}
+
+
+function setupLicenseFields() {
+    const licenseSelect = document.getElementById('license-license');
+    const embargoReasonField = document.getElementById('license-embargo_reason');
+    const licenseOtherText = document.getElementById('license-other_text');
+
+    if (licenseSelect && embargoReasonField && licenseOtherText) {
+        const embargoReasonRow = embargoReasonField.closest('.col-12');
+        const licenseOtherTextRow = licenseOtherText.closest('.col-12');
+
+        function toggleTextFields() {
+            embargoReasonRow.style.display = (licenseSelect.value === 'Embargo') ? '' : 'none';
+            licenseOtherTextRow.style.display = (licenseSelect.value === 'Other') ? '' : 'none';
+        }
+
+        licenseSelect.addEventListener('change', toggleTextFields);
+        toggleTextFields();
+    }
 }
 
 function populateOrcidInfo(orcidInput) {

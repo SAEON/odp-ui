@@ -189,18 +189,23 @@ class GeographicExtentForm(BaseForm):
 
 class LicenseForm(BaseForm):
     license = SelectField(label='License', choices=[
-        ('https://creativecommons.org/publicdomain/zero/1.0/', 'CC0 1.0 Universal (CC0 1.0)'),
         ('https://creativecommons.org/licenses/by/4.0/', 'Attribution 4.0 International (CC BY 4.0)'),
         ('https://creativecommons.org/licenses/by-sa/4.0/', 'Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)'),
-        ('Embargo', 'Embargo')
+        ('Embargo', 'Embargo'),
+        ('Other', 'Other')
     ],
      description="Conditions under which the dataset should be shared. Read more about Creative Commons licenses <a href='https://creativecommons.org/chooser/'>here</a>."
      )
     embargo_reason = StringField(label='Embargo Reason')
+    other_text = StringField(label='Please Specify')
 
     def validate_embargo_reason(self, field):
         if self.license.data == 'Embargo' and not field.data.strip():
             raise ValidationError('An embargo reason is required when the "Embargo" license is selected.')
+
+    def validate_other_text(self, field):
+        if self.license.data == 'Other' and not field.data.strip():
+            raise ValidationError('Please specify')
 
 
 class DateRangeForm(BaseForm):
@@ -260,12 +265,12 @@ class VerticalExtentForm(BaseForm):
 class SubmissionForm(BaseForm):
     title = StringField(label='Title', description='Dataset title.', validators=[data_required()])
     abstract = TextAreaField(
-        label='Description: Abstract',
+        label='Dataset Abstract',
         description='Description of the dataset. The Abstract should include enough detail to fully explain the context of the dataset.',
         validators=[data_required()]
     )
     methods = TextAreaField(
-        label='Description: Methods',
+        label='Methodology',
         description='Detailed provenance on how the dataset was produced including methods applied.',
         validators=[data_required()]
     )

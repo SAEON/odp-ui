@@ -6,7 +6,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
 {% block main %}
     <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
         <div class="container-sm mims-container my-3">
-            <div class="col-10 m-auto mb-4">
+            <div class="col-11 m-auto mb-4">
                 <span style="font-size: 1.4em; color: darkslategrey; font-weight: bold">{% if show_steps %}Step 1 of
                     2: {% endif %}Metadata Submission</span>
                 <p style="color: darkslategrey">
@@ -21,7 +21,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                       method="post">
                     {{ form.csrf_token }}
                     <div class="row">
-                        <div class="col-10 m-auto">
+                        <div class="col-11 m-auto">
                             <div class="mt-5 mb-4 d-flex align-items-center">
                                 <h5 class="mb-0 me-3"
                                     style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
@@ -36,7 +36,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                 <div class="col-2 text-end">
                                     {{ form.date_range.label(class='form-label', style='font-size: 1.3rem;') }}
                                 </div>
-                                <div class="col-9">
+                                <div class="col-8">
                                     {{ render_flat_subform(form.date_range) }}
                                 </div>
                             </div>
@@ -53,7 +53,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                 <div class="col-2 text-end">
                                     {{ form.geographic_extent.label(class='form-label', style='font-size: 1rem;') }}
                                 </div>
-                                <div class="col-9">
+                                <div class="col-8">
                                     <div class="subform-wrapper py-3">
                                         {{ form.geographic_extent.csrf_token }}
                                         <div class="row mb-3">
@@ -119,7 +119,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                 <div class="col-2 text-end">
                                     {{ form.vertical_extent.label(class='form-label', style='font-size: 1.3rem;') }}
                                 </div>
-                                <div class="col-9">
+                                <div class="col-8">
                                     {{ render_flat_subform(form.vertical_extent) }}
                                 </div>
                             </div>
@@ -130,7 +130,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                 <div class="col-2 text-end">
                                     {{ form.funding_reference.label(class='form-label', style='font-size: 1.3rem;') }}
                                 </div>
-                                <div class="col-9">
+                                <div class="col-8">
                                     {{ render_field(form.funding_reference[0].funder_name, submission, true) }}
                                 </div>
                             </div>
@@ -139,7 +139,7 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                 <div class="col-2 text-end">
                                     {{ form.license.label(class='form-label', style='font-size: 1.3rem;') }}
                                 </div>
-                                <div class="col-9">
+                                <div class="col-8">
                                     <div class="col-12">
                                         {{ render_field(form.license.license, submission, true) }}
                                     </div>
@@ -147,11 +147,15 @@ render_creator_field_list, render_flat_field_list, field_row %}
                                         {{ form.license.embargo_reason.label(class='form-label mb-1 small') }}
                                         {{ render_field(form.license.embargo_reason, submission) }}
                                     </div>
+                                    <div class="col-12 mt-3">
+                                        {{ form.license.other_text.label(class='form-label mb-1 small') }}
+                                        {{ render_field(form.license.other_text, submission) }}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="mt-4 col-10 mx-auto d-flex justify-content-end">
+                    <div class="mt-4 col-11 mx-auto d-flex justify-content-end">
                         <a href="{{ url_for('.detail', id=submission.id) if submission else url_for('.index') }}"
                            class="btn btn-outline-secondary btn-action me-2">
                             Cancel
@@ -182,23 +186,6 @@ render_creator_field_list, render_flat_field_list, field_row %}
     <script src="{{ url_for('static', filename='scripts/submission.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const licenseSelect = document.getElementById('license-license');
-            const embargoReasonField = document.getElementById('license-embargo_reason');
-
-            if (licenseSelect && embargoReasonField) {
-                const embargoReasonRow = embargoReasonField.closest('.col-12');
-
-                function toggleEmbargoReason() {
-                    if (licenseSelect.value === 'Embargo') {
-                        embargoReasonRow.style.display = '';
-                    } else {
-                        embargoReasonRow.style.display = 'none';
-                    }
-                }
-
-                licenseSelect.addEventListener('change', toggleEmbargoReason);
-                toggleEmbargoReason();
-            }
         });
     </script>
 {% endblock %}

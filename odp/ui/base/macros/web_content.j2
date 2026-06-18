@@ -48,6 +48,7 @@
 {% macro render_flat_subform(subform) %}
     <div class="subform-wrapper">
         {{ subform.csrf_token }}
+        <div class="form-text">{{ subform.description }}</div>
         <div class="d-flex flex-row flex-wrap">
             {% for subfield in subform if 'csrf_token' not in subfield.id %}
                 <div class="flex-grow-1 me-3" style="min-width: 200px;">
@@ -106,7 +107,7 @@
         <div class="col-2 text-end">
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
-        <div class="col-9">
+        <div class="col-8">
             {% if field_list.description %}
                 <div class="form-text">{{ field_list.description }}</div>
             {% endif %}
@@ -144,7 +145,7 @@
         <div class="col-2 text-end">
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
-        <div class="col-9">
+        <div class="col-8">
             {% if field_list.description %}
                 <div class="form-text">{{ field_list.description }}</div>
             {% endif %}
@@ -178,7 +179,7 @@
         <div class="col-2 text-end">
             {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
-        <div class="col-9">
+        <div class="col-8">
             {% if field_list.description %}
                 <div class="form-text">{{ field_list.description }}</div>
             {% endif %}
@@ -217,7 +218,7 @@
         <div class="col-2 text-end">
             {{ field.label(class='form-label' + (' required' if field.flags.required else ''), style='font-size: 1.3rem;') }}
         </div>
-        <div class="col-9">
+        <div class="col-8">
             {% if field.type == 'FieldList' %}
                 <div class="mt-n4"> {{ render_field_list(field) }} </div>
             {% elif field.type == 'FormField' %}
