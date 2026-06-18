@@ -51,7 +51,7 @@
         <div class="form-text">{{ subform.description }}</div>
         <div class="d-flex flex-row flex-wrap">
             {% for subfield in subform if 'csrf_token' not in subfield.id %}
-                <div class="flex-grow-1 me-3" style="min-width: 200px;">
+                <div class="flex-grow-1{{ ' me-3' if not loop.last else '' }}" style="min-width: 200px;">
                     {{ subfield.label(class='form-label mb-1 small' + (' required' if subfield.flags.required else '')) }}
                     {{ render_field(subfield) }}
                 </div>
@@ -116,7 +116,7 @@
                         {{ render_field(entry) }}
                     {% endif %}
                 </div>
-                <div class="col-1 d-flex align-items-end justify-content-between">
+                <div class="col-1 d-flex align-items-end justify-content-end">
                     <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
                             class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
                             style="width: 30px; height:30px; padding: 0;">
@@ -148,7 +148,7 @@
                 <div class="col-11">
                     {{ creator_subform(entry) }}
                 </div>
-                <div class="col-1 d-flex align-items-end justify-content-between">
+                <div class="col-1 d-flex align-items-end justify-content-end">
                     <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
                             class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
                             style="width: 30px; height:30px; padding: 0;">
@@ -174,20 +174,20 @@
     {% if field_list.description %}
         <div class="form-text">{{ field_list.description }}</div>
     {% endif %}
-    <div class="d-flex flex-wrap field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+    <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
         {% for entry in field_list.entries %}
-            <div class="d-flex align-items-start me-3 field_list_row col-12"
+            <div class="row field_list_row mb-2"
                  id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
-                <div class="me-2 col-11">
+                <div class="col-11">
                     {% if entry.type == 'FormField' %}
                         {{ render_flat_subform(entry) }}
                     {% else %}
                         {{ render_field(entry) }}
                     {% endif %}
                 </div>
-                <div class="col-1 d-flex align-items-end justify-content-between" style="height: 100%">
+                <div class="col-1 d-flex align-items-end justify-content-end">
                     <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
-                            class="ms-2 btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                            class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
                             style="width: 30px; height:30px; padding: 0;">
                         &#128465;
                     </button>
