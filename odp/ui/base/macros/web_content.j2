@@ -102,127 +102,194 @@
     </div>
 {% endmacro %}
 
-{% macro render_field_list(field_list) %}
-    <div class="row mt-4">
-        <div class="col-2 text-end">
-            {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
-        </div>
-        <div class="col-8">
-            {% if field_list.description %}
-                <div class="form-text">{{ field_list.description }}</div>
-            {% endif %}
-            <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
-                {% for entry in field_list.entries %}
-                    <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
-                        <div class="col-11">
-                            {% if entry.type == 'FormField' %}
-                                {{ render_subform(entry) }}
-                            {% else %}
-                                {{ render_field(entry) }}
-                            {% endif %}
-                        </div>
-                        <div class="col-1 d-flex align-items-end justify-content-between">
-                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
-                                    class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
-                                    style="width: 30px; height:30px; padding: 0;">
-                                &#128465;
-                            </button>
-                        </div>
-                    </div>
-                {% endfor %}
+{% macro render_field_list_content(field_list) %}
+    {% if field_list.description %}
+        <div class="form-text">{{ field_list.description }}</div>
+    {% endif %}
+    <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+        {% for entry in field_list.entries %}
+            <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
+                <div class="col-11">
+                    {% if entry.type == 'FormField' %}
+                        {{ render_subform(entry) }}
+                    {% else %}
+                        {{ render_field(entry) }}
+                    {% endif %}
+                </div>
+                <div class="col-1 d-flex align-items-end justify-content-between">
+                    <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                            class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                            style="width: 30px; height:30px; padding: 0;">
+                        &#128465;
+                    </button>
+                </div>
             </div>
-            <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
-                    class="btn btn-outline-info btn-sm mt-1">
-                Add
-                Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
-            </button>
-        </div>
+        {% endfor %}
     </div>
+    <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+            class="btn btn-outline-info btn-sm mt-1">
+        Add Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
+    </button>
+{% endmacro %}
+
+{% macro render_field_list(field_list) %}
+    {% call field_row(field_list) %}
+        {{ render_field_list_content(field_list) }}
+    {% endcall %}
+{% endmacro %}
+
+{% macro render_creator_field_list_content(field_list) %}
+    {% if field_list.description %}
+        <div class="form-text">{{ field_list.description }}</div>
+    {% endif %}
+    <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+        {% for entry in field_list.entries %}
+            <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
+                <div class="col-11">
+                    {{ creator_subform(entry) }}
+                </div>
+                <div class="col-1 d-flex align-items-end justify-content-between">
+                    <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                            class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                            style="width: 30px; height:30px; padding: 0;">
+                        &#128465;
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+            class="btn btn-outline-info btn-sm mt-1">
+        Add Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
+    </button>
 {% endmacro %}
 
 {% macro render_creator_field_list(field_list) %}
-    <div class="row mt-4">
-        <div class="col-2 text-end">
-            {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
-        </div>
-        <div class="col-8">
-            {% if field_list.description %}
-                <div class="form-text">{{ field_list.description }}</div>
-            {% endif %}
-            <div class="field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
-                {% for entry in field_list.entries %}
-                    <div class="row field_list_row mb-2" id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
-                        <div class="col-11">
-                            {{ creator_subform(entry) }}
-                        </div>
-                        <div class="col-1 d-flex align-items-end justify-content-between">
-                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
-                                    class="btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
-                                    style="width: 30px; height:30px; padding: 0;">
-                                &#128465;
-                            </button>
-                        </div>
-                    </div>
-                {% endfor %}
+    {% call field_row(field_list) %}
+        {{ render_creator_field_list_content(field_list) }}
+    {% endcall %}
+{% endmacro %}
+
+{% macro render_flat_field_list_content(field_list) %}
+    {% if field_list.description %}
+        <div class="form-text">{{ field_list.description }}</div>
+    {% endif %}
+    <div class="d-flex flex-wrap field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+        {% for entry in field_list.entries %}
+            <div class="d-flex align-items-start me-3 field_list_row col-12"
+                 id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
+                <div class="me-2 col-11">
+                    {% if entry.type == 'FormField' %}
+                        {{ render_flat_subform(entry) }}
+                    {% else %}
+                        {{ render_field(entry) }}
+                    {% endif %}
+                </div>
+                <div class="col-1 d-flex align-items-end justify-content-between" style="height: 100%">
+                    <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                            class="ms-2 btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
+                            style="width: 30px; height:30px; padding: 0;">
+                        &#128465;
+                    </button>
+                </div>
             </div>
-            <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
-                    class="btn btn-outline-info btn-sm mt-1">
-                Add
-                Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
-            </button>
-        </div>
+        {% endfor %}
     </div>
+    <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+            class="btn btn-outline-info btn-sm mt-1">
+        Add Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
+    </button>
 {% endmacro %}
 
 {% macro render_flat_field_list(field_list) %}
-    <div class="row mt-4">
-        <div class="col-2 text-end">
-            {{ field_list.label(class='form-label' + (' required' if field_list.flags.required else ''), style='font-size: 1.3rem;') }}
-        </div>
-        <div class="col-8">
-            {% if field_list.description %}
-                <div class="form-text">{{ field_list.description }}</div>
-            {% endif %}
-            <div class="d-flex flex-wrap field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
-                {% for entry in field_list.entries %}
-                    <div class="d-flex align-items-start me-3 field_list_row col-12"
-                         id="field_list_row_{{ field_list.name }}-{{ loop.index0 }}">
-                        <div class="me-2 col-11">
-                            {% if entry.type == 'FormField' %}
-                                {{ render_flat_subform(entry) }}
-                            {% else %}
-                                {{ render_field(entry) }}
-                            {% endif %}
-                        </div>
-                        <div class="col-1 d-flex align-items-end justify-content-between" style="height: 100%">
-                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
-                                    class="ms-2 btn btn-outline-danger btn-remove-field-list-entry d-flex align-items-center justify-content-center"
-                                    style="width: 30px; height:30px; padding: 0;">
-                                &#128465;
-                            </button>
-                        </div>
-                    </div>
-                {% endfor %}
+    {% call field_row(field_list) %}
+        {{ render_flat_field_list_content(field_list) }}
+    {% endcall %}
+{% endmacro %}
+
+{% macro render_geographic_extent(subform) %}
+    <div class="subform-wrapper py-3">
+        {{ subform.csrf_token }}
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="form-text">{{ subform.map.description }}</div>
+                <div id="map"></div>
             </div>
-            <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
-                    class="btn btn-outline-info btn-sm mt-1">
-                Add
-                Another {{ field_list.label.text[:-1] if field_list.label.text.endswith('s') else field_list.label.text }}
-            </button>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                {{ subform.north_bound_latitude.label(class='form-label mb-1 small' + (' required' if subform.north_bound_latitude.flags.required else '')) }}
+                {{ render_field(subform.north_bound_latitude, description_on_top=false) }}
+            </div>
+            <div class="col-6">
+                {{ subform.south_bound_latitude.label(class='form-label mb-1 small' + (' required' if subform.south_bound_latitude.flags.required else '')) }}
+                {{ render_field(subform.south_bound_latitude, description_on_top=false) }}
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-6">
+                {{ subform.west_bound_longitude.label(class='form-label mb-1 small' + (' required' if subform.west_bound_longitude.flags.required else '')) }}
+                {{ render_field(subform.west_bound_longitude, description_on_top=false) }}
+            </div>
+            <div class="col-6">
+                {{ subform.east_bound_longitude.label(class='form-label mb-1 small' + (' required' if subform.east_bound_longitude.flags.required else '')) }}
+                {{ render_field(subform.east_bound_longitude, description_on_top=false) }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-6">
+                {{ subform.point_latitude.label(class='form-label mb-1 small' + (' required' if subform.point_latitude.flags.required else '')) }}
+                {{ render_field(subform.point_latitude, description_on_top=false) }}
+            </div>
+            <div class="col-6">
+                {{ subform.point_longitude.label(class='form-label mb-1 small' + (' required' if subform.point_longitude.flags.required else '')) }}
+                {{ render_field(subform.point_longitude, description_on_top=false) }}
+            </div>
         </div>
     </div>
 {% endmacro %}
 
-{% macro field_row(field, obj=none) %}
+{% macro render_license_subform(subform, submission=none) %}
+    {{ subform.csrf_token }}
+    <div class="col-12">
+        {{ render_field(subform.license, submission, true) }}
+    </div>
+    <div class="col-12 mt-3">
+        {{ subform.embargo_reason.label(class='form-label mb-1 small') }}
+        {{ render_field(subform.embargo_reason, submission) }}
+    </div>
+    <div class="col-12 mt-3">
+        {{ subform.other_text.label(class='form-label mb-1 small') }}
+        {{ render_field(subform.other_text, submission) }}
+    </div>
+{% endmacro %}
+
+{% macro field_row(field, obj=none, flat=false, creator=false, label_style='font-size: 1.3rem;') %}
     <div class="row align-items-baseline mt-4">
         <div class="col-2 text-end">
-            {{ field.label(class='form-label' + (' required' if field.flags.required else ''), style='font-size: 1.3rem;') }}
+            {{ field.label(class='form-label' + (' required' if field.flags.required else ''), style=label_style) }}
         </div>
         <div class="col-8">
-            {% if field.type == 'FieldList' %}
-                <div class="mt-n4"> {{ render_field_list(field) }} </div>
+            {% if caller %}
+                {{ caller() }}
+            {% elif field.type == 'FieldList' %}
+                <div class="mt-n4">
+                    {% if creator %}
+                        {{ render_creator_field_list_content(field) }}
+                    {% elif flat %}
+                        {{ render_flat_field_list_content(field) }}
+                    {% else %}
+                        {{ render_field_list_content(field) }}
+                    {% endif %}
+                </div>
             {% elif field.type == 'FormField' %}
-                <div class="mt-n4"> {{ render_subform(field) }} </div>
+                {% if flat %}
+                    {{ render_flat_subform(field) }}
+                {% else %}
+                    <div class="mt-n4">
+                        {{ render_subform(field) }}
+                    </div>
+                {% endif %}
             {% else %}
                 {{ render_field(field, obj, **kwargs) }}
             {% endif %}
