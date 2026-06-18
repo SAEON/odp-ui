@@ -134,13 +134,12 @@ class ODPUserClient(ODPBaseClient):
             method: str,
             url: str,
             data: dict | None,
-            files: dict | None,
             params: dict,
             headers: dict,
             stream: bool = False,
     ) -> requests.Response:
         return self.oauth.hydra.request(
-            method, url, json=data, files=files, params=params, headers=headers, stream=stream
+            method, url, json=data, params=params, headers=headers, stream=stream
         )
 
     def _signup(self):
