@@ -1,7 +1,71 @@
+function showNotification(message, type = 'warning') {
+    const container = document.querySelector('main .container, main, .container') || document.body;
+    const div = document.createElement('div');
+    div.className = `alert alert-${type} alert-dismissible fade show mt-2`;
+    div.setAttribute('role', 'alert');
+    div.innerHTML = `${message}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    container.prepend(div);
+    setTimeout(() => div.remove(), 5000);
+}
+
 // the user-drawn box on the filter-by-location map
 let box;
 const boxColor = getComputedStyle(document.documentElement)
     .getPropertyValue('--bs-info');
+
+let downloadModalInstance;
+let downloadModalElement;
+let submitDownloadBtn;
+let downloadAuditForm;
+
+const DOWNLOAD_CACHE_KEY = 'mims_download_cache';
+const CACHE_EXPIRY_DAYS = 30;
+
+function getDownloadCache() {
+    const cached = localStorage.getItem(DOWNLOAD_CACHE_KEY);
+    if (!cached) return null;
+
+    try {
+        const data = JSON.parse(cached);
+        if (data.timestamp && (Date.now() - data.timestamp > CACHE_EXPIRY_DAYS * 24 * 60 * 60 * 1000)) {
+            localStorage.removeItem(DOWNLOAD_CACHE_KEY);
+            return null;
+        }
+        return data;
+    } catch (e) {
+        return null;
+    }
+}
+
+function saveDownloadCache(name, email, organisation) {
+    try {
+        const cacheData = {
+            name: name, email: email, organisation: organisation, timestamp: Date.now()
+        };
+        localStorage.setItem(DOWNLOAD_CACHE_KEY, JSON.stringify(cacheData));
+    } catch (e) {
+        // Silently fail if cache cannot be saved
+    }
+}
+
+function populateDownloadFormFromCache(nameFieldId, emailFieldId, organisationFieldId) {
+    const cache = getDownloadCache();
+    if (!cache) return;
+
+    const nameField = document.getElementById(nameFieldId);
+    const emailField = document.getElementById(emailFieldId);
+    const organisationField = document.getElementById(organisationFieldId);
+
+    if (nameField && cache.name) {
+        nameField.value = cache.name;
+    }
+    if (emailField && cache.email) {
+        emailField.value = cache.email;
+    }
+    if (organisationField && cache.organisation) {
+        organisationField.value = cache.organisation;
+    }
+}
 
 function _initMap(n, e, s, w) {
     let lat = -33;
@@ -11,19 +75,13 @@ function _initMap(n, e, s, w) {
         lon = (e + w) / 2;
     }
     const map = L.map('map', {
-        center: [lat, lon],
-        zoom: 3,
-        gestureHandling: true,
-        gestureHandlingOptions: {
+        center: [lat, lon], zoom: 3, gestureHandling: true, gestureHandlingOptions: {
             duration: 1500
         }
     });
-    L.tileLayer.provider(
-        'Esri.WorldStreetMap'
-    ).addTo(map);
+    L.tileLayer.provider('Esri.WorldStreetMap').addTo(map);
     L.control.scale({
-        metric: true,
-        imperial: false
+        metric: true, imperial: false
     }).addTo(map);
 
     return map;
@@ -41,8 +99,7 @@ function createExtentMap(n, e, s, w) {
             color: boxColor
         }).addTo(map);
         map.fitBounds(bounds, {
-            animate: false,
-            maxZoom: 9
+            animate: false, maxZoom: 9
         });
     }
 }
@@ -59,13 +116,8 @@ function createFilterMap() {
     const drawnItems = new L.FeatureGroup();
     const drawControl = new L.Control.Draw({
         draw: {
-            polyline: false,
-            polygon: false,
-            marker: false,
-            circle: false,
-            circlemarker: false
-        },
-        edit: {
+            polyline: false, polygon: false, marker: false, circle: false, circlemarker: false
+        }, edit: {
             featureGroup: drawnItems
         }
     });
@@ -79,8 +131,7 @@ function createFilterMap() {
         });
         drawnItems.addLayer(box);
         map.fitBounds(bounds, {
-            animate: false,
-            maxZoom: 9
+            animate: false, maxZoom: 9
         });
     }
 
@@ -89,7 +140,7 @@ function createFilterMap() {
         drawnItems.addLayer(box);
     });
 
-    map.on(L.Draw.Event.DELETED, function (event) {
+    map.on(L.Draw.Event.DELETED, function () {
         box = null;
     });
 }
@@ -157,12 +208,9 @@ function formatCitation(doi) {
         localStorage.setItem('citation-style', style);
     } else {
         $.ajax({
-            url: `https://doi.org/${doi}`,
-            dataType: 'text',
-            headers: {
+            url: `https://doi.org/${doi}`, dataType: 'text', headers: {
                 Accept: `text/x-bibliography; locale=en-GB; style=${style}`
-            },
-            success: function (result) {
+            }, success: function (result) {
                 $('#citation').html(result);
                 localStorage.setItem('citation-style', style);
             }
@@ -174,8 +222,7 @@ function copyCitation() {
     const text = $('#citation').text();
     navigator.clipboard.writeText(text).then(function () {
         const tooltip = new bootstrap.Tooltip($('#copy-citation-btn'), {
-            title: 'Copied!',
-            trigger: 'manual'
+            title: 'Copied!', trigger: 'manual'
         });
         tooltip.show();
         setTimeout(function () {
@@ -183,3 +230,167 @@ function copyCitation() {
         }, 3000);
     });
 }
+
+function getSelectedIds() {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function buildRedirectUrl(selectedIds) {
+    const currentUrl = new URL(window.location.href);
+    const baseUrl = `${currentUrl.origin}/catalog/subset`;
+    const queryParams = selectedIds.map(id => `record_id_or_doi_list=${id}`).join('&');
+    return `${baseUrl}?${queryParams}&page=1&size=50`;
+}
+
+function goToSelectedRecordList(event, records) {
+    event.preventDefault();
+    const selectedIds = getSelectedIds(records);
+    const redirectUrl = buildRedirectUrl(selectedIds);
+    window.location.href = redirectUrl;
+}
+
+function updateButtonStates() {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]:checked');
+    const downloadSelectedBtn = document.getElementById('download-selected-btn');
+
+    if (downloadSelectedBtn) {
+        downloadSelectedBtn.disabled = checkboxes.length === 0;
+    }
+}
+
+function toggleSelectAll(selectAllCheckbox) {
+    const checkboxes = document.querySelectorAll('input[name="check_item"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    updateButtonStates();
+}
+
+function handleShareClick(buttonElement) {
+    const cb = buttonElement.previousElementSibling;
+    if (cb?.type === 'checkbox') cb.checked = true;
+}
+
+function downloadSelectedRecords(event, _buttonEl, recordId) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    try {
+        const selectedIds = recordId !== '' ? [recordId] : getSelectedIds();
+        if (selectedIds.length === 0) {
+            showNotification('Please select one or more records to download.');
+            return;
+        }
+
+        if (downloadAuditForm) {
+            downloadAuditForm.reset();
+
+            downloadAuditForm.querySelectorAll('input[name="record_ids"]').forEach(el => el.remove());
+            selectedIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'record_ids';
+                input.value = id;
+                downloadAuditForm.appendChild(input);
+            });
+        }
+
+        if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+        const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
+        if (loader) loader.style.display = 'none';
+
+        populateDownloadFormFromCache('download-name', 'download-email', 'organisation');
+        if (downloadModalInstance) downloadModalInstance.show();
+
+    } catch {
+        showNotification('An error occurred. Please try again.', 'danger');
+    }
+}
+
+function createAndDisplayLink(event) {
+    event.preventDefault();
+    const targetInput = document.getElementById('record-subset-link');
+    if (!targetInput) {
+        showNotification('An error occurred while generating the link.', 'danger');
+        return;
+    }
+
+    const selectedIds = getSelectedIds();
+    if (selectedIds.length === 0) {
+        showNotification('Please select at least one record.');
+        return;
+    }
+    const redirectUrl = buildRedirectUrl(selectedIds);
+    targetInput.value = redirectUrl;
+}
+
+function copyToClipboard(elementSelector) {
+    const element = document.querySelector(elementSelector);
+    if (element && element.value) {
+        navigator.clipboard.writeText(element.value).then(() => {
+            const copyButton = element.nextElementSibling;
+            if (copyButton) {
+                const originalText = copyButton.innerHTML;
+                copyButton.innerHTML = 'Copied!';
+                setTimeout(() => {
+                    copyButton.innerHTML = originalText;
+                }, 2000);
+            }
+        }).catch(() => {
+            showNotification('Failed to copy text. Please try manually.');
+        });
+    }
+}
+
+function initCatalogUI() {
+    initDownloadCheckboxes();
+    initDownloadModal();
+}
+
+function initDownloadCheckboxes() {
+    const itemCheckboxes = document.querySelectorAll('input[name="check_item"]');
+    if (itemCheckboxes.length > 0) {
+        updateButtonStates();
+        itemCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateButtonStates);
+        });
+    }
+}
+
+function initDownloadModal() {
+    downloadModalElement = document.getElementById('download-audit-modal');
+    if (!downloadModalElement) return;
+
+    downloadModalInstance = new bootstrap.Modal(downloadModalElement);
+    submitDownloadBtn = document.getElementById('submit-download-btn');
+    downloadAuditForm = document.getElementById('download-audit-form');
+
+    const disclaimerCheckbox = document.getElementById('disclaimer-acknowledgment');
+    if (disclaimerCheckbox && submitDownloadBtn) {
+        disclaimerCheckbox.addEventListener('change', function () {
+            submitDownloadBtn.disabled = !this.checked;
+        });
+    }
+
+    if (downloadAuditForm) {
+        downloadAuditForm.addEventListener('submit', function () {
+            // Show loader and disable button while server generates ZIP
+            const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
+            if (loader) loader.style.display = 'inline-block';
+            if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+
+            saveDownloadCache(
+                document.getElementById('download-name').value,
+                document.getElementById('download-email').value,
+                document.getElementById('organisation').value
+            );
+
+            // Close modal after a short delay — download proceeds in browser's download bar
+            setTimeout(() => downloadModalInstance.hide(), 1500);
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initCatalogUI);

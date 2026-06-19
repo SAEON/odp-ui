@@ -3,18 +3,19 @@ from pathlib import Path
 from random import randint
 from typing import Optional
 
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, stream_with_context, url_for, Response
 
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
 from odp.ui.base import api, cli
-from odp.ui.base.forms import SearchForm
+from odp.ui.base.forms import SearchForm,DownloadAuditForm
 
 bp = Blueprint(
     'catalog', __name__,
     static_folder=Path(__file__).parent.parent / 'static',
 )
 
+client_id = api.client_id.split('.')[0]
 
 @bp.app_template_filter()
 def doi_title(doi: str) -> str:
@@ -29,11 +30,9 @@ def doi_title(doi: str) -> str:
                 schema_id=ODPMetadataSchema.SAEON_DATACITE4,
                 json_pointer='/titles/0/title',
         ):
-            # titles rarely change, but we must expire them in case they ever do;
-            # keep for between 7 and 14 days, so a large set of child record titles doesn't expire all at once
             cli.cache.set(doi, 'title', value=title, expiry=randint(604800, 1209600))
 
-            return title
+        return title
 
     except ODPAPIError:
         pass
@@ -74,6 +73,27 @@ def select_ris_metadata(record: dict) -> Optional[dict]:
     return _select_metadata(record, ODPMetadataSchema.RIS_CITATION)
 
 
+def _format_facets(facets_dict: dict) -> dict:
+    """
+    Standardizes facet names for display and removes internal-only facets.
+
+    """
+    name_map = {
+        'EOV': 'Essential Ocean Variables',
+        'EBV': 'Essential Biodiversity Variables',
+        'SDG': 'SDG Variables',
+    }
+
+    exclude = {'Keyword', 'SDG Variables'}
+
+    formatted = {}
+    for key, value in facets_dict.items():
+        display_name = name_map.get(key, key)
+        if display_name not in exclude:
+            formatted[display_name] = value
+
+    return formatted
+
 @bp.route('/')
 @cli.view()
 def index():
@@ -95,6 +115,7 @@ def index():
     facet_api_query = {}
     facet_ui_query = {}
     facet_fields = {}
+
     for facet_title in facets:
         facet_field = SearchForm.facet_fieldname(facet_title)
         facet_fields[facet_title] = facet_field
@@ -119,11 +140,20 @@ def index():
         size=25,
     )
 
+    if result and isinstance(result, dict) and 'facets' in result:
+        result['facets'] = _format_facets(result['facets'])
+
+    facet_fields = _format_facets(facet_fields)
+
+    show_bulk_download = client_id in current_app.config.get('BULK_DOWNLOAD_CLIENTS', ['MIMS'])
+
     return render_template(
         'catalog_index.html',
         form=SearchForm(request.args),
+        audit_form=DownloadAuditForm(),
         result=result,
         facet_fields=facet_fields,
+        show_bulk_download_options=show_bulk_download
     )
 
 
@@ -152,14 +182,31 @@ def view(id):
     catalog_id = current_app.config['CATALOG_ID']
 
     record = cli.get(f'/catalog/{catalog_id}/records/{id}')
-    sdg_vocab = {
-        keyword_obj['id']: keyword_obj['data']
-        for keyword_obj in cli.get(f'/vocabulary/SDG')['terms']
-    }
+
+    # Fetch all available facets to help with keyword routing
+    facet_values = {}
+    try:
+        search_result = cli.get(
+            f'/catalog/{catalog_id}/search',
+            text_query=None,
+            facet_query=None,
+            page=1,
+            size=1,
+        )
+        if search_result and 'facets' in search_result:
+            # Facets come as list of tuples: [(value, count), (value, count), ...]
+            # Extract just the values (first element of each tuple)
+            facet_values = {facet: [val[0] if isinstance(val, (list, tuple)) else val for val in vals]
+                            for facet, vals in search_result['facets'].items()}
+    except Exception as e:
+        current_app.logger.error(f"Could not fetch facet values: {e}", exc_info=True)
 
     return render_template(
         'catalog_record.html',
-        record=record, sdg_vocab=sdg_vocab,
+        record=record,
+        facet_values=facet_values,
+        audit_form=DownloadAuditForm(),
+        show_bulk_download_options=(client_id in current_app.config.get('BULK_DOWNLOAD_CLIENTS', ['MIMS']))
     )
 
 
@@ -177,3 +224,76 @@ def sitemap():
     response = make_response(sitemap_xml)
     response.headers['Content-Type'] = 'application/xml'
     return response
+
+
+@bp.route('/subset')
+@cli.view()
+def subset_record_list():
+    catalog_id = current_app.config['CATALOG_ID']
+    record_ids = request.args.getlist('record_id_or_doi_list')
+
+    page = request.args.get('page', 1, type=int)
+    size = request.args.get('size', 50, type=int)
+
+    # Pass parameters as keyword arguments to handle encoding automatically
+    catalog_record_list = cli.get(
+        f'/catalog/{catalog_id}/subset',
+        record_id_or_doi_list=record_ids,
+        page=page,
+        size=size
+    )
+
+    return render_template(
+        'catalog_subset.html',
+        catalog_record_list=catalog_record_list,
+        audit_form=DownloadAuditForm(),
+        show_bulk_download_options=(client_id in current_app.config.get('BULK_DOWNLOAD_CLIENTS', ['MIMS'])),
+        facet_values={},
+    )
+
+@bp.route('/download-audit', methods=['POST'])
+def download_audit():
+    """
+    Validates the download audit form with WTForms, then forwards the request
+    to the ODP API server for ZIP bundle generation and returns the file.
+    """
+    form = DownloadAuditForm(request.form)
+    record_ids = request.form.getlist('record_ids')
+
+    if not form.validate() or not record_ids:
+        flash('Please fill in all required fields before downloading.')
+        return redirect(request.referrer or url_for('catalog.index'))
+
+    payload = {
+        'record_ids': record_ids,
+        'user_data': {
+            'name': form.name.data,
+            'email': form.email.data,
+            'organisation': form.organisation.data,
+        }
+    }
+
+    try:
+        api_response = cli.stream_post('/catalog/generate-zip-bundle', payload)
+        
+        def generate():
+            for chunk in api_response.iter_content(chunk_size=8192):
+                if chunk:
+                    yield chunk
+
+        headers = {
+            'Content-Disposition': 'attachment; filename="records.zip"',
+        }
+        if 'Content-Length' in api_response.headers:
+            headers['Content-Length'] = api_response.headers['Content-Length']
+
+        return Response(
+            stream_with_context(generate()),
+            mimetype='application/zip',
+            headers=headers
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"ZIP generation failed: {str(e)}", exc_info=True)
+        flash('Failed to generate ZIP bundle. Please try again.')
+        return redirect(request.referrer or url_for('catalog.index'))
