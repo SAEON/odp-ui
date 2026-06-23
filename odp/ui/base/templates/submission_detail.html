@@ -22,9 +22,10 @@
                 </div>
 
                 <div>
-                    <label class="form-label mt-4">Uploaded Dataset</label>
+                    <label class="form-label mt-4">Dataset</label>
                     <div class="input-group mt-1">
-                        <input type="text" class="form-control" placeholder="{{ submission.dataset_file_name }}"
+                        {% set dataset_placeholder = submission.dataset_file_name if submission.dataset_file_name else submission.dataset_url %}
+                        <input type="text" class="form-control" placeholder="{{ dataset_placeholder }}"
                                disabled="">
                         <a href="{{ url_for('.upload', id=submission.id, is_editing=true) }}"
                            class="btn btn-primary {{ 'disabled' if not buttons_enabled }}">

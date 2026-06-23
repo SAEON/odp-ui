@@ -117,7 +117,20 @@ def upload(id):
             )
 
             flash(f'Dataset uploaded successfully.', category='success')
-            return redirect(url_for('.detail', id=id))
+
+        elif form.dataset_link.data:
+            api_route = f'/submission/{id}/dataset_url'
+
+            api.post(
+                api_route,
+                data={},
+                dataset_url=form.dataset_link.data,
+                user_id=current_user.id,
+            )
+
+            flash(f'Dataset URL added successfully.', category='success')
+
+        return redirect(url_for('.detail', id=id))
 
     return render_template(
         'submission_data_upload.html',

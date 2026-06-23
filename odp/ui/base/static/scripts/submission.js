@@ -36,8 +36,8 @@ function setupLicenseFields() {
     const licenseOtherText = document.getElementById('license-other_text');
 
     if (licenseSelect && embargoReasonField && licenseOtherText) {
-        const embargoReasonRow = embargoReasonField.closest('.col-12');
-        const licenseOtherTextRow = licenseOtherText.closest('.col-12');
+        const embargoReasonRow = embargoReasonField.closest('.col-12') ?? embargoReasonField.closest('.subform-row');
+        const licenseOtherTextRow = licenseOtherText.closest('.col-12') ?? licenseOtherText.closest('.subform-row');
 
         function toggleTextFields() {
             embargoReasonRow.style.display = (licenseSelect.value === 'Embargo') ? '' : 'none';
@@ -49,20 +49,38 @@ function setupLicenseFields() {
     }
 }
 
+function showError(inputElement, message) {
+    inputElement.removeClass('is-valid').addClass('is-invalid');
+
+    let feedback = inputElement.siblings('.invalid-feedback');
+    if (feedback.length === 0) {
+        feedback = $('<div class="invalid-feedback"></div>').insertAfter(inputElement);
+    }
+    feedback.text(message);
+}
+
+function clearError(inputElement) {
+    inputElement.removeClass('is-invalid');
+    inputElement.siblings('.invalid-feedback').text('');
+}
+
 function populateOrcidInfo(orcidInput) {
     let rawValue = orcidInput.val().trim();
 
-    if (rawValue === "") return;
+    if (rawValue === "") {
+        clearError(orcidInput);
+        orcidInput.removeClass('is-valid');
+        return;
+    }
 
-    // Matches the ID at the end of the URL or on its own
     const idMatch = rawValue.match(/(\d{4}-){3}\d{3}[\dX]$/);
 
     if (idMatch) {
+        clearError(orcidInput); // Clear format error if regex passes
         const orcidId = idMatch[0];
         const fullUrl = `https://orcid.org/${orcidId}`;
 
         orcidInput.val(fullUrl);
-
         orcidInput.addClass('is-loading');
         const baseId = orcidInput.attr('id').replace('orcid', '');
 
@@ -78,28 +96,37 @@ function populateOrcidInfo(orcidInput) {
                 if (employment) {
                     $(`#${baseId}affiliation_name`).val(employment.organization.name).trigger('change');
                 }
-                orcidInput.removeClass('is-invalid').addClass('is-valid');
+                orcidInput.addClass('is-valid');
             },
-            error: function () {
-                orcidInput.addClass('is-invalid');
+            error: function (xhr) {
+                let errorMsg = 'Failed to fetch ORCID profile. Please fill in details manually.';
+                if (xhr.status === 404) {
+                    errorMsg = 'ORCID record not found. Please check the identifier.';
+                }
+                showError(orcidInput, errorMsg);
             },
             complete: function () {
                 orcidInput.removeClass('is-loading');
             }
         });
     } else {
-        orcidInput.addClass('is-invalid');
+        showError(orcidInput, 'Invalid ORCID format. Expected format: 0000-0000-0000-0000');
     }
 }
 
 function populateRORInfo(rorInput) {
     let rawValue = rorInput.val().trim();
 
-    if (rawValue === "") return;
+    if (rawValue === "") {
+        clearError(rorInput);
+        rorInput.removeClass('is-valid');
+        return;
+    }
 
     const idMatch = rawValue.match(/([a-z0-9]{9})$/);
 
     if (idMatch) {
+        clearError(rorInput); // Clear format error if regex passes
         const rorId = idMatch[0];
         const fullUrl = `https://ror.org/${rorId}`;
 
@@ -119,17 +146,21 @@ function populateRORInfo(rorInput) {
                     $(`#${baseId}affiliation_name`).val(institutionName).trigger('change');
                 }
 
-                rorInput.removeClass('is-invalid').addClass('is-valid');
+                rorInput.addClass('is-valid');
             },
-            error: function () {
-                rorInput.addClass('is-invalid');
+            error: function (xhr) {
+                let errorMsg = 'Failed to fetch ROR details. Please fill in details manually.';
+                if (xhr.status === 404) {
+                    errorMsg = 'ROR organization record not found.';
+                }
+                showError(rorInput, errorMsg);
             },
             complete: function () {
                 rorInput.removeClass('is-loading');
             }
         });
     } else {
-        rorInput.addClass('is-invalid');
+        showError(rorInput, 'Invalid ROR ID. Expected a 9-character ID or full ROR URL.');
     }
 }
 

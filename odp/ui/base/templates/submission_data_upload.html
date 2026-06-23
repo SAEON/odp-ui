@@ -6,18 +6,23 @@
     <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
         <div class="container-sm">
             <div class="mims-container col-6 m-auto">
-                <div class="row">
-                    <h2>{% if not is_editing %}Step 2 of 2: {% endif %}Dataset Upload</h2>
-                    {% if is_editing %}
-                        <div class="alert alert-dismissible alert-info mt-4">
-                            <strong>Note!</strong> Uploading a dataset after one has already been uploaded will
-                            result in the previous dataset being overwritten.
-                        </div>
-                    {% endif %}
-                </div>
-                <div class="row">
-                    {{ render_form(form, submission, submit_target=url_for('.upload', id=submission_id), cancel_target=url_for('.detail', id=submission_id),file_upload=true, full_width=true) }}
-                </div>
+                <span class="mx-1"
+                      style="font-size: 1.4em; color: darkslategrey; font-weight: bold">{% if not is_editing %}Step 2 of
+                    2: {% endif %}Dataset Upload</span>
+                {% if is_editing %}
+                    <div class="alert alert-dismissible alert-info mt-4">
+                        <strong>Note!</strong> Uploading a dataset after one has already been uploaded will result in
+                        the
+                        previous dataset being overwritten.
+                    </div>
+                {% else %}
+                    <div class="alert alert-dismissible alert-info mt-4">
+                        Please upload either a dataset file <strong>OR</strong> a link to your dataset. You can click "cancel" and complete this step at a later stage. Don't worry, your metadata is successfully saved.
+                    </div>
+                {% endif %}
+            </div>
+            <div class="row">
+                {{ render_form(form, submission, submit_target=url_for('.upload', id=submission_id), cancel_target=url_for('.detail', id=submission_id),file_upload=true) }}
             </div>
         </div>
     </main>

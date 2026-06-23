@@ -296,7 +296,7 @@ class SubmissionForm(BaseForm):
     geographic_extent = FormField(GeographicExtentForm, label='Geographic Extent')
     location_name = StringField(
         label='Geographic location',
-        description='Name of the geographic area covered by the dataset.'
+        description='Name of the place covered by the dataset.'
     )
     spatial_resolution = StringField(
         label='Spatial Resolution',
@@ -314,7 +314,7 @@ class SubmissionForm(BaseForm):
     date_range = FormField(
         DateRangeForm,
         label='Temporal coverage dates',
-        description='Time period covered by the content of the dataset.'
+        description="Time period covered by the content of the dataset. Use today's date if you are unsure of the time period covered."
     )
     project = FieldList(
         StringField(),
@@ -336,4 +336,29 @@ class SubmissionForm(BaseForm):
 
 
 class SubmissionDataUploadForm(BaseForm):
-    dataset = FileField('Dataset')
+    dataset_link = StringField('Dataset Link')
+    dataset = FileField('Dataset File')
+
+    def validate(self, extra_validators=None):
+        initial_valid = super(SubmissionDataUploadForm, self).validate(extra_validators=extra_validators)
+        if not initial_valid:
+            return False
+
+        has_link = bool(self.dataset_link.data and self.dataset_link.data.strip())
+
+        has_file = bool(self.dataset.data)
+        if has_file and hasattr(self.dataset.data, 'filename'):
+            has_file = bool(self.dataset.data.filename)
+
+        if has_link and has_file:
+            message = "Please provide either a link OR a file, not both."
+            self.dataset_link.errors.append(message)
+            self.dataset.errors.append(message)
+            return False
+
+        if not has_link and not has_file:
+            message = "You must provide either a dataset link or upload a file."
+            self.dataset_link.errors.append(message)
+            return False
+
+        return True
