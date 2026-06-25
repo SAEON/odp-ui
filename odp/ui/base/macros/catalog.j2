@@ -11,7 +11,7 @@
                     <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form id="download-audit-form" method="post" action="{{ url_for('catalog.download_audit') }}">
+                <form id="download-audit-form" method="post">
                     <div class="modal-body">
                         <p>Please provide some information before downloading.</p>
                         {{ form.csrf_token }}

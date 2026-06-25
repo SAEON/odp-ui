@@ -375,20 +375,34 @@ function initDownloadModal() {
     }
 
     if (downloadAuditForm) {
-        downloadAuditForm.addEventListener('submit', function () {
-            // Show loader and disable button while server generates ZIP
-            const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
-            if (loader) loader.style.display = 'inline-block';
-            if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+        downloadAuditForm.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-            saveDownloadCache(
-                document.getElementById('download-name').value,
-                document.getElementById('download-email').value,
-                document.getElementById('organisation').value
+            const name         = document.getElementById('download-name').value;
+            const email        = document.getElementById('download-email').value;
+            const organisation = document.getElementById('organisation').value;
+            saveDownloadCache(name, email, organisation);
+
+            const recordIds = [...downloadAuditForm.querySelectorAll('input[name="record_ids"]')]
+                .map(i => i.value);
+
+            localStorage.setItem('odp-download-request', JSON.stringify({
+                recordIds,
+                userData: {name, email, organisation},
+            }));
+
+            const popup = window.open(
+                rootPath + '/catalog/download-progress',
+                'odp-download',
+                'width=520,height=200,resizable=yes,scrollbars=no'
             );
 
-            // Close modal after a short delay — download proceeds in browser's download bar
-            setTimeout(() => downloadModalInstance.hide(), 1500);
+            downloadModalInstance.hide();
+
+            if (!popup) {
+                localStorage.removeItem('odp-download-request');
+                showNotification('Please allow popups for this site to enable downloads, then try again.', 'warning');
+            }
         });
     }
 }
