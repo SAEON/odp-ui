@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% from 'lib.j2' import bootswatch_spacelab_css, jszip_js %}
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Downloading…</title>
+    {{ bootswatch_spacelab_css() }}
+    <style>
+        body {
+            padding: 1.5rem;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="d-flex align-items-center mb-3 gap-2">
+                <div id="status-spinner" class="spinner-border spinner-border-sm text-primary flex-shrink-0"
+                    role="status" aria-hidden="true"></div>
+                <span id="download-status" class="fw-semibold">Preparing download…</span>
+            </div>
+            <div class="progress mb-2" style="height: 8px;">
+                <div id="download-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                    role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <small id="download-detail" class="text-muted"></small>
+                <small id="download-pct" class="text-muted">0%</small>
+            </div>
+            <p class="text-muted mt-3 mb-0" style="font-size: 0.78rem;">
+                <strong>Note:</strong> Some files may be large and take a few minutes.
+                Do not close this window — you can minimise it and continue using the application.
+            </p>
+        </div>
+    </div>
+
+    {{ jszip_js() }}
+    <script>
+        const rootPath = {{ request.script_root | tojson }};
+    </script>
+    <script src="{{ url_for('static', filename='scripts/download_progress.js') }}"></script>
+</body>
+
+</html>

@@ -1,9 +1,8 @@
 import json
 from pathlib import Path
 from random import randint
-from typing import Optional
-
-from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, stream_with_context, url_for, Response
+import requests as http_requests
+from flask import Blueprint, abort, current_app, flash, jsonify, make_response, redirect, render_template, request, stream_with_context, url_for, Response
 
 from odp.const import ODPMetadataSchema
 from odp.lib.client import ODPAPIError
@@ -40,7 +39,7 @@ def doi_title(doi: str) -> str:
     return ''
 
 
-def _select_metadata(record: dict, schema_id: ODPMetadataSchema) -> Optional[dict]:
+def _select_metadata(record: dict, schema_id: ODPMetadataSchema) -> dict | None:
     return next(
         (metadata_record['metadata']
          for metadata_record in record['metadata_records']
@@ -56,19 +55,19 @@ def select_datacite_metadata(record: dict) -> dict:
 
 
 @bp.app_template_filter()
-def select_iso19115_metadata(record: dict) -> Optional[dict]:
+def select_iso19115_metadata(record: dict) -> dict | None:
     """Select the ISO19115 metadata dict, if present."""
     return _select_metadata(record, ODPMetadataSchema.SAEON_ISO19115)
 
 
 @bp.app_template_filter()
-def select_schemaorg_metadata(record: dict) -> Optional[dict]:
+def select_schemaorg_metadata(record: dict) -> dict | None:
     """Select the schema.org (JSON-LD) metadata dict, if present."""
     return _select_metadata(record, ODPMetadataSchema.SCHEMAORG_DATASET)
 
 
 @bp.app_template_filter()
-def select_ris_metadata(record: dict) -> Optional[dict]:
+def select_ris_metadata(record: dict) -> dict | None:
     """Select the RIS metadata dict, if present."""
     return _select_metadata(record, ODPMetadataSchema.RIS_CITATION)
 
@@ -251,49 +250,65 @@ def subset_record_list():
         facet_values={},
     )
 
-@bp.route('/download-audit', methods=['POST'])
-def download_audit():
+@bp.route('/download-bundle', methods=['POST'])
+def download_bundle():
     """
-    Validates the download audit form with WTForms, then forwards the request
-    to the ODP API server for ZIP bundle generation and returns the file.
+    Accepts JSON from the browser fetch(). Validates user fields, forwards to
+    /catalog/metadata-bundle on the API server, returns JSON to the browser.
     """
-    form = DownloadAuditForm(request.form)
-    record_ids = request.form.getlist('record_ids')
+    data = request.get_json(silent=True) or {}
+    user_data = data.get('user_data', {})
 
-    if not form.validate() or not record_ids:
-        flash('Please fill in all required fields before downloading.')
-        return redirect(request.referrer or url_for('catalog.index'))
+    if not all(user_data.get(f) for f in ('name', 'email', 'organisation')):
+        return jsonify({'error': 'name, email and organisation are required'}), 400
+
+    record_ids = data.get('record_ids', [])
+    if not record_ids:
+        return jsonify({'error': 'No records selected'}), 400
 
     payload = {
         'record_ids': record_ids,
-        'user_data': {
-            'name': form.name.data,
-            'email': form.email.data,
-            'organisation': form.organisation.data,
-        }
+        'user_data': user_data,
+        'client_ip': request.remote_addr,
+        'user_agent': request.headers.get('User-Agent'),
+        'referer': request.referrer,
     }
 
     try:
-        api_response = cli.stream_post('/catalog/generate-zip-bundle', payload)
-        
+        result = cli.post('/catalog/metadata-bundle', payload)
+        return jsonify(result)
+    except Exception as e:
+        current_app.logger.error(f"Metadata bundle request failed: {e}", exc_info=True)
+        return jsonify({'error': 'Failed to generate metadata bundle'}), 500
+
+
+@bp.route('/proxy-download')
+def proxy_download():
+    """
+    Proxies a data file from external storage to the browser.
+    Used as a CORS fallback when the browser cannot fetch directly.
+    Only allows URLs from repository.ocean.gov.za.
+    """
+    url = request.args.get('url', '')
+    if not url.startswith('https://repository.ocean.gov.za/'):
+        return jsonify({'error': 'URL not allowed'}), 403
+
+    try:
+        upstream = http_requests.get(url + '/download', stream=True, timeout=60)
+        upstream.raise_for_status()
+        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+
         def generate():
-            for chunk in api_response.iter_content(chunk_size=8192):
+            for chunk in upstream.iter_content(chunk_size=8192):
                 if chunk:
                     yield chunk
 
-        headers = {
-            'Content-Disposition': 'attachment; filename="records.zip"',
-        }
-        if 'Content-Length' in api_response.headers:
-            headers['Content-Length'] = api_response.headers['Content-Length']
-
-        return Response(
-            stream_with_context(generate()),
-            mimetype='application/zip',
-            headers=headers
-        )
-
+        return Response(stream_with_context(generate()), content_type=content_type)
     except Exception as e:
-        current_app.logger.error(f"ZIP generation failed: {str(e)}", exc_info=True)
-        flash('Failed to generate ZIP bundle. Please try again.')
-        return redirect(request.referrer or url_for('catalog.index'))
+        current_app.logger.error(f"Proxy download failed for {url}: {e}")
+        return jsonify({'error': 'Proxy download failed'}), 502
+
+
+@bp.route('/download-progress')
+def download_progress():
+    return render_template('download_progress.html')
