@@ -297,13 +297,17 @@ def proxy_download():
         upstream = http_requests.get(url + '/download', stream=True, timeout=60)
         upstream.raise_for_status()
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+        content_disposition = upstream.headers.get('Content-Disposition', '')
 
         def generate():
             for chunk in upstream.iter_content(chunk_size=8192):
                 if chunk:
                     yield chunk
 
-        return Response(stream_with_context(generate()), content_type=content_type)
+        resp = Response(stream_with_context(generate()), content_type=content_type)
+        if content_disposition:
+            resp.headers['Content-Disposition'] = content_disposition
+        return resp
     except Exception as e:
         current_app.logger.error(f"Proxy download failed for {url}: {e}")
         return jsonify({'error': 'Proxy download failed'}), 502
