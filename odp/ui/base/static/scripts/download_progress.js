@@ -50,12 +50,18 @@ async function runDownload() {
                 let fileRes = null;
                 try { fileRes = await fetch(rec.data_file_url + '/download'); } catch (_) { }
                 if (!fileRes || !fileRes.ok) {
-                    fileRes = await fetch(
-                        rootPath + '/catalog/proxy-download?url=' + encodeURIComponent(rec.data_file_url)
-                    );
+                    try {
+                        fileRes = await fetch(
+                            rootPath + '/catalog/proxy-download?url=' + encodeURIComponent(rec.data_file_url)
+                        );
+                    } catch (_) { }
                 }
                 if (fileRes && fileRes.ok) {
                     folder.file(rec.data_file_name, await fileRes.arrayBuffer());
+                } else {
+                    folder.file('data_file_unavailable.txt',
+                        `The data file could not be downloaded.\n\nURL: ${rec.data_file_url}\n\nPlease try downloading it directly from the catalog record page.`
+                    );
                 }
             }
         }
