@@ -55,14 +55,7 @@ async function runDownload() {
                     );
                 }
                 if (fileRes && fileRes.ok) {
-                    let fileName = rec.data_file_name;
-                    const cd = fileRes.headers.get('content-disposition');
-                    if (cd) {
-                        const m = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i);
-                        if (m) fileName = decodeURIComponent(m[1].replace(/['"]/g, '').trim());
-                    }
-                    if (fileName && !/\.\w+$/.test(fileName)) fileName += '.zip';
-                    folder.file(fileName, await fileRes.arrayBuffer());
+                    folder.file(rec.data_file_name, await fileRes.arrayBuffer());
                 }
             }
         }
