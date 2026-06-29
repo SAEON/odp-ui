@@ -140,7 +140,8 @@ class FundingReferencesForm(BaseForm):
             "Crossref Funder ID",
             "ROR",
             "Other"
-        ]
+        ],
+        default='',
     )
     award_number = StringField(label='Award number')
     award_title = StringField(label='Award title')
