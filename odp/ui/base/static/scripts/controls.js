@@ -34,6 +34,7 @@ function appendFieldListEntry(fieldListName) {
     const entries = clonedFieldListRow.querySelectorAll('.form-control');
 
     entries.forEach((entry, index) => {
+        entry.classList.remove('is-invalid');
         entry.value = '';
     });
 

@@ -30,7 +30,6 @@
                             </div>
                             {{ field_row(form.title, submission) }}
                             {{ field_row(form.abstract, submission, rows=10) }}
-                            {{ field_row(form.methods, submission, rows=10) }}
                             {{ field_row(form.date_range, flat=true) }}
                             {{ field_row(form.keywords, submission) }}
                             {{ field_row(form.creators, creator=true) }}
@@ -41,6 +40,7 @@
                                     Recommended Fields</h5>
                                 <hr class="flex-grow-1 m-0 border-secondary">
                             </div>
+                            {{ field_row(form.methods, submission, rows=10) }}
                             {% call field_row(form.geographic_extent, label_style='font-size: 1rem;') %}
                                 {{ render_geographic_extent(form.geographic_extent) }}
                             {% endcall %}

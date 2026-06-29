@@ -134,6 +134,7 @@ class FundingReferencesForm(BaseForm):
     funder_identifier_type = SelectField(
         label='Funder identifier type',
         choices=[
+            "",
             "ISNI",
             "GRID",
             "Crossref Funder ID",
@@ -167,7 +168,8 @@ class ContributorForm(CreatorForm):
         ('RightsHolder', 'Rights Holder'),
         ('Sponsor', 'Sponsor'),
         ('Supervisor', 'Supervisor'),
-        ('WorkPackageLeader', 'Work Package Leader')
+        ('WorkPackageLeader', 'Work Package Leader'),
+        ('Other', 'Other')
     ])
     email = StringField(label='Email')
 
@@ -218,6 +220,7 @@ class RelatedIdentifiersForm(BaseForm):
     relationship_type = SelectField(
         label='Relationship type',
         choices=[
+            ('', '-- Select --'),
             ('IsCitedBy', 'Is Cited By'),
             ('Cites', 'Cites'),
             ('IsSupplementTo', 'Is Supplement To'),
@@ -257,8 +260,8 @@ class RelatedIdentifiersForm(BaseForm):
 
 
 class VerticalExtentForm(BaseForm):
-    height = StringField(label='Height')
-    depth = StringField(label='Depth')
+    height = StringField(label='Maximum')
+    depth = StringField(label='Minimum')
     measurement = StringField(label='Measurement')
 
 
@@ -271,8 +274,7 @@ class SubmissionForm(BaseForm):
     )
     methods = TextAreaField(
         label='Methodology',
-        description='Detailed provenance on how the dataset was produced including methods applied.',
-        validators=[data_required()]
+        description='Detailed provenance on how the dataset was produced including methods applied.'
     )
     instruments = SelectMultipleField(
         label='Instruments',
@@ -309,7 +311,7 @@ class SubmissionForm(BaseForm):
     vertical_extent = FormField(
         VerticalExtentForm,
         label='Vertical Extent',
-        description='Height and depth of the features described in the data submission, as well as measurement used, eg. Mean Sea Level.'
+        description='Altitude and depth of the features described in the data submission, as well as measurement used, eg. Mean Sea Level.'
     )
     date_range = FormField(
         DateRangeForm,
