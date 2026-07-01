@@ -2,6 +2,71 @@
 {% from 'controls.j2' import check_item %}
 
 
+{% macro download_audit_modal(form) %}
+    <div class="modal fade" id="download-audit-modal" tabindex="-1" aria-labelledby="downloadModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="downloadModalLabel">Download Confirmation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="download-audit-form" method="post">
+                    <div class="modal-body">
+                        <p>Please provide some information before downloading.</p>
+                        {{ form.csrf_token }}
+                        <div class="mb-3">
+                            {{ form.name.label(class='form-label') }}
+                            {{ form.name(class='form-control', id='download-name', required=True) }}
+                            <div class="invalid-feedback" id="error-name"></div>
+                        </div>
+                        <div class="mb-3">
+                            {{ form.email.label(class='form-label') }}
+                            {{ form.email(class='form-control', id='download-email', required=True) }}
+                            <div class="invalid-feedback" id="error-email"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.organisation.label(class='form-label') }}
+                            {{ form.organisation(class='form-control', id='organisation', required=True) }}
+                            <div class="invalid-feedback" id="error-organisation"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                {{ form.disclaimer_acknowledgment(class='form-check-input', id='disclaimer-acknowledgment', required=True) }}
+                                <label class="form-check-label" for="disclaimer-acknowledgment">
+                                    <small class="text-muted">
+                                        <strong>{{ form.disclaimer_acknowledgment.label.text }}:</strong>
+                                        {{ form.disclaimer_acknowledgment.description }}
+                                    </small>
+                                </label>
+                            </div>
+                            {% if form.disclaimer_acknowledgment.errors %}
+                                <div class="invalid-feedback" id="error-disclaimer-acknowledgment">
+                                    {% for error in form.disclaimer_acknowledgment.errors %}
+                                        {{ error }}<br>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="submit-download-btn">
+                            <span class="submit-download-loader" style="display:none;">
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            </span>
+                            Submit and Download
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endmacro %}
+
+
 {% macro search_box(
     form,
     placeholder='Search the ODP catalogue'
@@ -153,7 +218,8 @@
 
             <div class="accordion-item mb-4">
                 <h5 class="accordion-header">
-                    <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#{{ facet_id }}">
+                    <button class="accordion-button fw-bold text-muted" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#{{ facet_id }}">
                         {{ facet_title }}
                     </button>
                 </h5>
@@ -188,263 +254,484 @@
     </div>
 {% endmacro %}
 
+{% macro result_list(records,show_bulk_download_options=false,audit_form=None) %}
 
-{% macro result_list(
-    records
-) %}
-    {% for record in records %}
-        {% set metadata = record | select_datacite_metadata %}
-        {% set abstract = metadata.descriptions | selectattr('descriptionType', '==', 'Abstract') | map(attribute='description') | first %}
+    <form id="recordForm">
+        {% if show_bulk_download_options %}
+            {{ bulk_selection_controls() }}
+        {% endif %}
 
-        <div class="card mb-4">
-            <div class="card-header d-flex">
-                <div class="d-flex flex-grow-1 justify-content-between">
-                    <span>
-                        {% if record.doi %}
-                            DOI: {{ record.doi }}
-                        {% else %}
-                            (No DOI)
+        {% for record in records %}
+            {% set metadata = record | select_datacite_metadata %}
+            {% set abstract = metadata.descriptions | selectattr('descriptionType', '==', 'Abstract') | map(attribute='description') | first %}
+
+            {% set immutable_resource = metadata.immutableResource if metadata.immutableResource is defined else None %}
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="row align-items-center w-100">
+                        <div class="col-md-8">
+                            {% if record.doi %}
+                                <span>DOI: {{ record.doi }}</span>
+                            {% else %}
+                                <span>(No DOI)</span>
+                            {% endif %}
+                        </div>
+
+                        {% if show_bulk_download_options %}
+                            <div class="col-md-4 d-flex justify-content-end align-items-center gap-2">
+                                <input type="checkbox" name="check_item" value="{{ record.id }}">
+
+                                <button type="button"
+                                        class="btn btn-link p-0"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#record-subset-popup"
+                                        onclick="handleShareClick(this)"
+                                >
+                                    <i class="bi bi-share"></i> <img
+                                        src="{{ url_for('static', filename='images/share-icon.png') }}"
+                                        height="15px"></a>
+
+                                </button>
+
+
+                                {% if immutable_resource
+                              and immutable_resource.resourceDownload
+                              and immutable_resource.resourceDownload.downloadURL
+                              and immutable_resource.resourceDownload.downloadURL.startswith('https://repository.ocean.gov.za') %}
+
+                                    {% set download_url = immutable_resource.resourceDownload.downloadURL %}
+
+                                    <button class="btn btn-link p-0 no-outline"
+                                            type="button"
+                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}')">
+                                        <img src="{{ url_for('static', filename='images/download-icon.png') }}"
+                                             height="15px">
+                                        <span class="download-loader" style="display:none;">
+                                            <span class="spinner-border spinner-border-sm text-primary" role="status"
+                                                  aria-hidden="true"></span>
+                                        </span>
+                                    </button>
+
+
+                                {% else %}
+                                    <span class="text-muted small">No Download</span>
+                                {% endif %}
+
+
+                            </div>
                         {% endif %}
-                    </span>
-                    <div>
-                        {% for sdg_tag in record.tags | selectattr('tag_id', '==', 'Record.SDG') | sort(attribute='data.keyword') %}
-                            <span>
-                                SDG {{ sdg_tag.data.keyword }}
-                                {%- if not loop.last %}, {% endif %}
-                            </span>
-                        {% endfor %}
                     </div>
                 </div>
-{#                <div class="ms-2">#}
-{#                    {{ check_item(record.id) }}#}
-{#                </div>#}
-            </div>
 
-            <div class="card-body">
-                <h5 class="card-title ">
-                    <a href="{{ url_for('catalog.view', id=record.doi or record.id) }}"
-                       class="text-decoration-none text-dark fw-bold">
-                        {{ metadata.titles[0].title }}
-                    </a>
-                </h5>
-                <p class="card-text">
-                    {{ abstract | truncate(500) }}
-                </p>
+
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <a href="{{ url_for('catalog.view', id=record.doi or record.id) }}"
+                           class="text-decoration-none text-dark fw-bold">
+                            {{ metadata.titles[0].title }}
+                        </a>
+                    </h5>
+                    <p class="card-text">
+                        {{ abstract | truncate(1000) }}
+                    </p>
+                </div>
+            </div>
+        {% endfor %}
+
+
+        <div class="modal fade" id="record-subset-popup" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-xl">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5">Selected Records Subset</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="d-grid gap-2">
+                                    <button onclick="goToSelectedRecordList(event)"
+                                            class="btn btn-outline-primary btn-action">
+                                        Go to record subset
+                                    </button>
+                                    <button onclick="createAndDisplayLink(event, this)"
+                                            class="btn btn-outline-primary btn-action"
+                                            data-records='{{ records | tojson | safe }}'>
+                                        Create shareable link
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <label for="record-subset-link" class="form-label">Shareable Link</label>
+                                <div class="input-group">
+                                    <input type="text" id="record-subset-link" class="form-control" readonly
+                                           placeholder="Click 'Create shareable link' to generate a link">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                            onclick="copyToClipboard('#record-subset-link')">Copy
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            Close
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-    {% endfor %}
+
+    </form>
+
+    {{ download_audit_modal(audit_form) }}
+{% endmacro %}
+
+{% macro bulk_selection_controls() %}
+    <div class="card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+                <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" id="select_all"
+                           onclick="toggleSelectAll(this)">
+                    <label class="form-check-label" for="select_all">Select All</label>
+                </div>
+            </div>
+            <div>
+                <button id="download-selected-btn"
+                        onclick="downloadSelectedRecords(event, this,'')"
+                        class="btn btn-outline-primary btn-action">
+                    <img src="{{ url_for('static', filename='images/download-icon.png') }}"
+                         height="15px" class="me-1">
+                    <span class="download-loader" style="display:none;">
+                        <span class="spinner-border spinner-border-sm text-primary" role="status"
+                              aria-hidden="true"></span>
+                    </span>
+                    Download Selected
+                </button>
+            </div>
+        </div>
+    </div>
 {% endmacro %}
 
 
 {% macro render_metadata(
     record,
     current_user,
-    sdg_vocab
+    facet_values={}
 ) %}
-    {% set datacite_metadata = record | select_datacite_metadata %}  {# always present #}
-    {% set iso19115_metadata = record | select_iso19115_metadata %}  {# might be null #}
-    {% set N, E, S, W = record.spatial_north, record.spatial_east, record.spatial_south, record.spatial_west %}
+{% set datacite_metadata = record | select_datacite_metadata %}
+{% set iso19115_metadata = record | select_iso19115_metadata %}
+{% set N, E, S, W = record.spatial_north, record.spatial_east, record.spatial_south, record.spatial_west %}
 
-    <ul class="nav nav-tabs" role="tablist">
+<ul class="nav nav-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <div class="nav-link active py-3 px-4">
+            {% if record.doi %}
+                DOI:
+                <span class="user-select-all">
+                    {{- record.doi -}}
+                </span>
+            {% else %}
+                No DOI
+            {% endif %}
+        </div>
+    </li>
+    {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
         <li class="nav-item" role="presentation">
-            {#<button class="nav-link active" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">#}
-            <div class="nav-link active py-3 px-4">
-                {% if record.doi %}
-                    DOI:
-                    <span class="user-select-all">
-                        {{- record.doi -}}
-                    </span>
-                {% else %}
-                    No DOI
-                {% endif %}
-            </div>
-            {#</button>#}
+            <a class="nav-link" href="{{ config.ODP_ADMIN_URL }}/records/{{ record.id }}" target="_blank">
+                Edit
+            </a>
         </li>
-        {% if current_user.is_authenticated and 'odp.record:read' in g.user_permissions %}
-            <li class="nav-item" role="presentation">
-                <a class="nav-link" href="{{ config.ODP_ADMIN_URL }}/records/{{ record.id }}" target="_blank">
-                    Edit
-                </a>
-            </li>
-        {% endif %}
-    </ul>
+    {% endif %}
+</ul>
 
-    <div class="tab-content p-4">
-        <div id="info" class="tab-pane fade show active" role="tabpanel">
-            {% set props = ['Title'] %}
+<div class="tab-content p-4">
+    <div id="info" class="tab-pane fade show active" role="tabpanel">
+        {% set props = ['Title'] %}
 
-            {% if iso19115_metadata and iso19115_metadata.descriptiveKeywords %}
-                {% set theme = iso19115_metadata.descriptiveKeywords |
+        {% if iso19115_metadata and iso19115_metadata.descriptiveKeywords %}
+            {% set theme = iso19115_metadata.descriptiveKeywords |
                                selectattr('keywordType', '==', 'theme') |
                                map(attribute='keyword') | first %}
-                {% if theme %}
-                    {% set props = props + ['Project'] %}
-                {% endif %}
+            {% if theme %}
+                {% set props = props + ['Project'] %}
             {% endif %}
+        {% endif %}
 
-            {% set props = props + ['Authors', 'Publisher', 'Contributors'] %}
+        {% set props = props + ['Authors', 'Publisher', 'Contributors'] %}
 
-            {% set abstract = datacite_metadata.descriptions |
+        {% set abstract = datacite_metadata.descriptions |
                               selectattr('descriptionType', '==', 'Abstract') |
                               map(attribute='description') | first %}
-            {% if abstract %}
-                {% set props = props + ['Abstract'] %}
-            {% endif %}
+        {% if abstract %}
+            {% set props = props + ['Abstract'] %}
+        {% endif %}
 
-            {% set methods = datacite_metadata.descriptions |
+        {% set methods = datacite_metadata.descriptions |
                              selectattr('descriptionType', '==', 'Methods') |
                              map(attribute='description') | first %}
-            {% if methods %}
-                {% set props = props + ['Methods'] %}
-            {% endif %}
+        {% if methods %}
+            {% set props = props + ['Methods'] %}
+        {% endif %}
 
-            {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
+        {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
 
-            {% set vertical -%}
-                {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
-                    {% set vert = iso19115_metadata.extent.verticalElement %}
-                    Max: {{ vert.maximumValue }} {{ vert.unitOfMeasure }} <br/>
-                    Min: {{ vert.minimumValue }} {{ vert.unitOfMeasure }}
-                {% endif %}
-            {%- endset %}
-            {% if vertical %}
-                {% set props = props + ['Vertical extent'] %}
-            {% endif %}
+        {% set vertical -%}
+        {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
+            {% set vert = iso19115_metadata.extent.verticalElement %}
+            Max: {{ vert.maximumValue }} {{ vert.unitOfMeasure }} <br/>
+            Min: {{ vert.minimumValue }} {{ vert.unitOfMeasure }}
+        {% endif %}
+        {%- endset %}
+        {% if vertical %}
+            {% set props = props + ['Vertical extent'] %}
+        {% endif %}
 
-            {% set props = props + ['Keywords'] %}
+        {% set props = props + ['Keywords'] %}
 
-            {% set sdg -%}
-                {% for sdg_tag in record.tags | selectattr('tag_id', '==', 'Record.SDG') | sort(attribute='data.keyword') %}
-                    {% set sdg_keyword = sdg_vocab[sdg_tag.data.keyword] %}
-                    {{ sdg_keyword.id | int }}: {{ sdg_keyword.title }}
-                    {%- if not loop.last %}<br/>{% endif %}
+        {% set relation_type_labels = {
+            'IsCitedBy': 'is cited by',
+            'Cites': 'cites',
+            'IsSupplementTo': 'is supplement to',
+            'IsSupplementedBy': 'is supplemented by',
+            'IsContinuedBy': 'is continued by',
+            'Continues': 'continues',
+            'IsDescribedBy': 'is described by',
+            'Describes': 'describes',
+            'HasMetadata': 'has metadata',
+            'IsMetadataFor': 'is metadata for',
+            'HasVersion': 'has version',
+            'IsVersionOf': 'is version of',
+            'IsNewVersionOf': 'is new version of',
+            'IsPreviousVersionOf': 'is previous version of',
+            'IsPartOf': 'is part of',
+            'HasPart': 'has part',
+            'IsPublishedIn': 'is published in',
+            'IsReferencedBy': 'is referenced by',
+            'References': 'references',
+            'IsDocumentedBy': 'is documented by',
+            'Documents': 'documents',
+            'IsCompiledBy': 'is compiled by',
+            'Compiles': 'compiles',
+            'IsVariantFormOf': 'is variant form of',
+            'IsOriginalFormOf': 'is original form of',
+            'IsIdenticalTo': 'is identical to',
+            'IsReviewedBy': 'is reviewed by',
+            'Reviews': 'reviews',
+            'IsDerivedFrom': 'is derived from',
+            'IsSourceOf': 'is source of',
+            'IsRequiredBy': 'is required by',
+            'Requires': 'requires',
+            'IsObsoletedBy': 'is obsoleted by',
+            'Obsoletes': 'obsoletes',
+        } %}
+
+        {% set contributor_type_labels = {
+            'ContactPerson': 'Contact Person',
+            'DataCollector': 'Data Collector',
+            'DataCurator': 'Data Curator',
+            'DataManager': 'Data Manager',
+            'Distributor': 'Distributor',
+            'Editor': 'Editor',
+            'HostingInstitution': 'Hosting Institution',
+            'Producer': 'Producer',
+            'ProjectLeader': 'Project Leader',
+            'ProjectManager': 'Project Manager',
+            'ProjectMember': 'Project Member',
+            'RegistrationAgency': 'Registration Agency',
+            'RegistrationAuthority': 'Registration Authority',
+            'RelatedPerson': 'Related Person',
+            'Researcher': 'Researcher',
+            'ResearchGroup': 'Research Group',
+            'RightsHolder': 'Rights Holder',
+            'Sponsor': 'Sponsor',
+            'Supervisor': 'Supervisor',
+            'WorkPackageLeader': 'Work Package Leader',
+        } %}
+
+        {% set related_ids -%}
+        {% if datacite_metadata.relatedIdentifiers %}
+            <ul class="list-unstyled">
+                {% for related_id in datacite_metadata.relatedIdentifiers | selectattr('relationType', '!=', 'HasPart') | sort(attribute='relationType,relatedIdentifier') %}
+                    {% set relation_type = relation_type_labels.get(related_id.relationType, related_id.relationType | lower) %}
+                    <li>
+                        This digital object <b>{{ relation_type }}</b>
+                        {{ _render_related_identifier(related_id) }}
+                    </li>
                 {% endfor %}
-            {%- endset %}
-            {% if sdg %}
-                {% set props = props + ['SDGs'] %}
-            {% endif %}
+                {% set child_records = datacite_metadata.relatedIdentifiers | selectattr('relationType', '==', 'HasPart') | sort(attribute='relatedIdentifier') %}
+                {% if child_records %}
+                    <li>
+                        Digital objects included in this collection:
+                        <ul>
+                            {% for related_id in child_records %}
+                                <li>
+                                    {{ _render_related_identifier(related_id) }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                {% endif %}
+            </ul>
+        {% endif %}
+        {%- endset %}
+        {% if related_ids %}
+            {% set props = props + ['Related resources'] %}
+        {% endif %}
 
-            {% set related_ids -%}
-                {% if datacite_metadata.relatedIdentifiers %}
-                    <ul class="list-unstyled">
-                        {% for related_id in datacite_metadata.relatedIdentifiers | selectattr('relationType', '!=', 'HasPart') | sort(attribute='relationType,relatedIdentifier') %}
-                            {% set relation_type = related_id.relationType | datacite_enum | lower %}
-                            <li>
-                                This digital object <b>{{ relation_type }}</b>
-                                {{ _render_related_identifier(related_id) }}
-                            </li>
+        {% call(prop) render_info(record, properties=props, hide_id=True) %}
+            {% if prop == 'Title' %}
+                <strong>{{ datacite_metadata.titles[0].title }}</strong>
+
+            {% elif prop == 'Project' %}
+                {{ theme }}
+
+            {% elif prop == 'Authors' %}
+                {% for creator in datacite_metadata.creators %}
+                    <p>{{ creator.name }}<br/>
+                        <small>{{ creator.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
+                    </p>
+                {% endfor %}
+
+            {% elif prop == 'Contributors' %}
+                {% for contributor in datacite_metadata.contributors %}
+                    <p>{{ contributor_type_labels.get(contributor.contributorType, contributor.contributorType) }}: {{ contributor.name }}<br/>
+                        <small>{{ contributor.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
+                    </p>
+                {% endfor %}
+
+            {% elif prop == 'Abstract' %}
+                {{ abstract }}
+
+            {% elif prop == 'Methods' %}
+                {{ methods }}
+
+            {% elif prop == 'Temporal extent' %}
+                {% if record.temporal_start %}
+                    {{ record.temporal_start | date }}
+                    {% if record.temporal_end %}
+                        &ndash; {{ record.temporal_end | date }}
+                    {% endif %}
+                {% endif %}
+
+            {% elif prop == 'Geographic extent' %}
+                <div id="map"></div>
+                {% for place in datacite_metadata.geoLocations | map(attribute='geoLocationPlace') %}
+                    <p class="mt-3">
+                        {{ place }}
+                    </p>
+                {% endfor %}
+                {% if N is not none and E is not none and S is not none and W is not none %}
+                    <p class="mt-3">
+                        {% if N == S and E == W %}
+                            Lat: {{ N }}<br/>
+                            Lon: {{ E }}
+                        {% else %}
+                            North: {{ N }}<br/>
+                            South: {{ S }}<br/>
+                            West: {{ W }}<br/>
+                            East: {{ E }}
+                        {% endif %}
+                    </p>
+                {% endif %}
+
+            {% elif prop == 'Vertical extent' %}
+                {{ vertical }}
+
+            {% elif prop == 'Publisher' %}
+                {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
+
+            {% elif prop == 'Keywords' %}
+                {% for keyword in record.keywords | sort %}
+                    {% set query = request.args.copy() %}
+
+                    {% set _ = query.pop('facet_keyword', None) %}
+                    {% set _ = query.pop('facet_project', None) %}
+                    {% set _ = query.pop('facet_location', None) %}
+                    {% set _ = query.pop('facet_instrument', None) %}
+                    {% set _ = query.pop('facet_eov', None) %}
+                    {% set _ = query.pop('facet_ebv', None) %}
+                    {% set _ = query.pop('facet_sdg', None) %}
+
+                    {% set found_facet = false %}
+
+                    {% if keyword.startswith('EOV:') %}
+                        {% set eov_value = keyword[5:].strip() %}
+                        {% set _ = query.update({'facet_eov': eov_value}) %}
+                        {% set found_facet = true %}
+                    {% elif keyword.startswith('EBV:') %}
+                        {% set ebv_value = keyword[5:].strip() %}
+                        {% set _ = query.update({'facet_ebv': ebv_value}) %}
+                        {% set found_facet = true %}
+                    {% elif keyword.startswith('SDG') %}
+                        {% set _ = query.update({'facet_sdg': keyword}) %}
+                        {% set found_facet = true %}
+                    {% endif %}
+
+                    {% if not found_facet and facet_values %}
+                        {% set keyword_lower = keyword.lower() %}
+
+                        {% for facet_val in facet_values.get('Project', []) %}
+                            {% if not found_facet and facet_val.lower() == keyword_lower %}
+                                {% set _ = query.update({'facet_project': facet_val}) %}
+                                {% set found_facet = true %}
+                            {% endif %}
                         {% endfor %}
-                        {% set child_records = datacite_metadata.relatedIdentifiers | selectattr('relationType', '==', 'HasPart') | sort(attribute='relatedIdentifier') %}
-                        {% if child_records %}
-                            <li>
-                                Digital objects included in this collection:
-                                <ul>
-                                    {% for related_id in child_records %}
-                                        <li>
-                                            {{ _render_related_identifier(related_id) }}
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </li>
-                        {% endif %}
-                    </ul>
-                {% endif %}
-            {%- endset %}
-            {% if related_ids %}
-                {% set props = props + ['Related resources'] %}
-            {% endif %}
 
-            {% call(prop) render_info(record, properties=props, hide_id=True) %}
-                {% if prop == 'Title' %}
-                    <strong>{{ datacite_metadata.titles[0].title }}</strong>
+                        {% for facet_val in facet_values.get('Location', []) %}
+                            {% if not found_facet and facet_val.lower() == keyword_lower %}
+                                {% set _ = query.update({'facet_location': facet_val}) %}
+                                {% set found_facet = true %}
+                            {% endif %}
+                        {% endfor %}
 
-                {% elif prop == 'Project' %}
-                    {{ theme }}
-
-                {% elif prop == 'Authors' %}
-                    {% for creator in datacite_metadata.creators %}
-                        <p>{{ creator.name }}<br/>
-                            <small>{{ creator.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
-                        </p>
-                    {% endfor %}
-
-                {% elif prop == 'Contributors' %}
-                    {% for contributor in datacite_metadata.contributors %}
-                        <p>{{ contributor.contributorType | datacite_enum }}: {{ contributor.name }}<br/>
-                            <small>{{ contributor.affiliation | map(attribute='affiliation') | join('<br/>') | safe }}</small>
-                        </p>
-                    {% endfor %}
-
-                {% elif prop == 'Abstract' %}
-                    {{ abstract }}
-
-                {% elif prop == 'Methods' %}
-                    {{ methods }}
-
-                {% elif prop == 'Temporal extent' %}
-                    {% if record.temporal_start %}
-                        {{ record.temporal_start | date }}
-                        {% if record.temporal_end %}
-                            &ndash; {{ record.temporal_end | date }}
-                        {% endif %}
+                        {% for facet_val in facet_values.get('Instrument', []) %}
+                            {% if not found_facet and facet_val.lower() == keyword_lower %}
+                                {% set _ = query.update({'facet_instrument': facet_val}) %}
+                                {% set found_facet = true %}
+                            {% endif %}
+                        {% endfor %}
                     {% endif %}
 
-                {% elif prop == 'Geographic extent' %}
-                    <div id="map"></div>
-                    {% for place in datacite_metadata.geoLocations | map(attribute='geoLocationPlace') %}
-                        <p class="mt-3">
-                            {{ place }}
-                        </p>
-                    {% endfor %}
-                    {% if N is not none and E is not none and S is not none and W is not none %}
-                        <p class="mt-3">
-                            {% if N == S and E == W %}
-                                Lat: {{ N }}<br/>
-                                Lon: {{ E }}
-                            {% else %}
-                                North: {{ N }}<br/>
-                                South: {{ S }}<br/>
-                                West: {{ W }}<br/>
-                                East: {{ E }}
-                            {% endif %}
-                        </p>
+                    {% if not found_facet %}
+                        {% set _ = query.update({'facet_keyword': keyword}) %}
                     {% endif %}
 
-                {% elif prop == 'Vertical extent' %}
-                    {{ vertical }}
+                    <a href="{{ url_for('.index', **query) }}" class="text-underline-hover">
+                        {{ keyword }}
+                    </a>{% if not loop.last %}, {% endif %}
+                {% endfor %}
 
-                {% elif prop == 'Publisher' %}
-                    {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
-
-                {% elif prop == 'Keywords' %}
-                    {{ record.keywords | sort | join(', ') }}
-
-                {% elif prop == 'Data' %}
-                    <div class="d-flex justify-content-between">
-                        <a href="{{ datacite_metadata.rightsList[0].rightsURI }}" target="_blank">
-                            {{ datacite_metadata.rightsList[0].rights }}
-                        </a>
-                        <div>
-                            {% if record.doi %}
-                                {{ citation_button(record) }}
-                            {% endif %}
-                            {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
-                                {{ download_button(
-                                    datacite_metadata.immutableResource.resourceDownload.downloadURL
+            {% elif prop == 'Data' %}
+                <div class="d-flex justify-content-between">
+                    <a href="{{ datacite_metadata.rightsList[0].rightsURI }}" target="_blank">
+                        {{ datacite_metadata.rightsList[0].rights }}
+                    </a>
+                    <div>
+                        {% if record.doi %}
+                            {{ citation_button(record) }}
+                        {% endif %}
+                        {% if datacite_metadata.immutableResource and datacite_metadata.immutableResource.resourceDownload %}
+                            {{ download_button(
+                                    datacite_metadata.immutableResource.resourceDownload.downloadURL,
+                                    record.id,
+                                    record.doi
                                 ) }}
-                            {% endif %}
-                        </div>
+                        {% endif %}
                     </div>
+                </div>
 
-                {% elif prop == 'Related resources' %}
-                    {{ related_ids }}
+            {% elif prop == 'Related resources' %}
+                {{ related_ids }}
 
-                {% elif prop == 'SDGs' %}
-                    {{ sdg }}
-                {% endif %}
-            {% endcall %}
-        </div>
+            {% endif %}
+        {% endcall %}
     </div>
+</div>
 {% endmacro %}
 
 
@@ -456,8 +743,8 @@
         {% set doi = related_id.relatedIdentifier | doi %}
         {% if doi.startswith('10.15493') %}
             {{ doi | doi_title }} (<a href="{{ url_for('catalog.view', id=doi) }}">
-                {{- doi -}}
-            </a>)
+            {{- doi -}}
+        </a>)
         {% else %}
             <a href="https://doi.org/{{ doi }}" target="_blank">
                 {{ doi }}
@@ -474,38 +761,15 @@
 
 
 {% macro download_button(
-    download_url
+    download_url,
+    record_id,
+    doi=None
 ) %}
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#download-popup">
-        Download
+    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}')"
+            data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
+        <span class="download-text">Download</span>
+        <span class="download-loader spinner-border spinner-border-sm ms-2" style="display:none;"></span>
     </button>
-
-    <div class="modal fade" id="download-popup" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h1 class="modal-title fs-5">Terms of use</h1>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    {{ config.CATALOG_TERMS_OF_USE }}
-                </div>
-                <div class="modal-footer">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" id="accept-terms-of-use"
-                               onchange="$('#download-btn').prop('disabled', !this.checked)">
-                        <label class="form-check-label" for="accept-terms-of-use">
-                            I agree to the terms of use
-                        </label>
-                    </div>
-                    <button id="download-btn" type="button" class="btn btn-primary" data-bs-dismiss="modal" disabled
-                            onclick="window.open('{{ download_url }}')">
-                        Download
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 {% endmacro %}
 
 
@@ -530,32 +794,34 @@
                 </div>
                 <div class="modal-footer">
                     <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-auto">
-                            <label for="citation-style" class="col-form-label">
-                                Style
-                            </label>
+                        <div class="row">
+                            <div class="col-auto">
+                                <label for="citation-style" class="col-form-label">
+                                    Style
+                                </label>
+                            </div>
+                            <div class="col">
+                                <select id="citation-style" class="form-control"
+                                        onchange="formatCitation('{{ record.doi }}')">
+                                    <option value="apa">APA</option>
+                                    <option value="bibtex">BibTeX</option>
+                                    <option value="chicago-author-date">Chicago</option>
+                                    <option value="elsevier-harvard">Harvard</option>
+                                    <option value="ieee">IEEE</option>
+                                    <option value="university-of-york-mla">MLA</option>
+                                    {% if ris_metadata and ris_metadata.ris %}
+                                        <option value="ris">RIS</option>
+                                    {% endif %}
+                                    <option value="vancouver">Vancouver</option>
+                                </select>
+                            </div>
+                            <div class="col-auto">
+                                <button id="copy-citation-btn" type="button" class="btn btn-primary"
+                                        onclick="copyCitation()">
+                                    Copy to clipboard
+                                </button>
+                            </div>
                         </div>
-                        <div class="col">
-                            <select id="citation-style" class="form-control" onchange="formatCitation('{{ record.doi }}')">
-                                <option value="apa">APA</option>
-                                <option value="bibtex">BibTeX</option>
-                                <option value="chicago-author-date">Chicago</option>
-                                <option value="elsevier-harvard">Harvard</option>
-                                <option value="ieee">IEEE</option>
-                                <option value="university-of-york-mla">MLA</option>
-                                {% if ris_metadata and ris_metadata.ris %}
-                                    <option value="ris">RIS</option>
-                                {% endif %}
-                                <option value="vancouver">Vancouver</option>
-                            </select>
-                        </div>
-                        <div class="col-auto">
-                            <button id="copy-citation-btn" type="button" class="btn btn-primary" onclick="copyCitation()">
-                                Copy to clipboard
-                            </button>
-                        </div>
-                    </div>
                     </div>
                 </div>
             </div>
