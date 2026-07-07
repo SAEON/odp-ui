@@ -1,3 +1,9 @@
+const rootPath = (function () {
+    const currentPathname = window.location.pathname;
+    const catalogIndex = currentPathname.indexOf('/catalog');
+    return catalogIndex !== -1 ? currentPathname.substring(0, catalogIndex) : '';
+})();
+
 function showNotification(message, type = 'warning') {
     const container = document.querySelector('main .container, main, .container') || document.body;
     const div = document.createElement('div');
@@ -239,7 +245,9 @@ function getSelectedIds() {
 
 function buildRedirectUrl(selectedIds) {
     const currentUrl = new URL(window.location.href);
-    const baseUrl = `${currentUrl.origin}/catalog/subset`;
+    const catalogIndex = currentUrl.pathname.indexOf('/catalog');
+    const basePath = currentUrl.pathname.substring(0, catalogIndex + 8);
+    const baseUrl = `${currentUrl.origin}${basePath}/subset`;
     const queryParams = selectedIds.map(id => `record_id_or_doi_list=${id}`).join('&');
     return `${baseUrl}?${queryParams}&page=1&size=50`;
 }
@@ -378,12 +386,12 @@ function initDownloadModal() {
         downloadAuditForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-            const nameField  = document.getElementById('download-name');
+            const nameField = document.getElementById('download-name');
             const emailField = document.getElementById('download-email');
-            const orgField   = document.getElementById('organisation');
+            const orgField = document.getElementById('organisation');
 
-            const name         = nameField.value.trim();
-            const email        = emailField.value.trim();
+            const name = nameField.value.trim();
+            const email = emailField.value.trim();
             const organisation = orgField.value.trim();
 
             // Reset previous validation state
@@ -422,7 +430,7 @@ function initDownloadModal() {
 
             localStorage.setItem('odp-download-request', JSON.stringify({
                 recordIds,
-                userData: {name, email, organisation},
+                userData: { name, email, organisation },
             }));
 
             const popup = window.open(
