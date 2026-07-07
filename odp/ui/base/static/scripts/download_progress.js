@@ -1,3 +1,9 @@
+const rootPath = (function() {
+    const currentPathname = window.location.pathname;
+    const catalogIndex = currentPathname.indexOf('/catalog');
+    return catalogIndex !== -1 ? currentPathname.substring(0, catalogIndex) : '';
+})();
+
 const bar = document.getElementById('download-bar');
 const statusEl = document.getElementById('download-status');
 const detailEl = document.getElementById('download-detail');
@@ -47,12 +53,16 @@ async function runDownload() {
             );
 
             if (rec.data_file_url) {
+                folder.file('download_link.txt', rec.data_file_url);
+
                 let fileRes = null;
                 try { fileRes = await fetch(rec.data_file_url + '/download'); } catch (_) { }
                 if (!fileRes || !fileRes.ok) {
-                    fileRes = await fetch(
-                        rootPath + '/catalog/proxy-download?url=' + encodeURIComponent(rec.data_file_url)
-                    );
+                    try {
+                        fileRes = await fetch(
+                            rootPath + '/catalog/proxy-download?url=' + encodeURIComponent(rec.data_file_url)
+                        );
+                    } catch (_) { }
                 }
                 if (fileRes && fileRes.ok) {
                     folder.file(rec.data_file_name, await fileRes.arrayBuffer());

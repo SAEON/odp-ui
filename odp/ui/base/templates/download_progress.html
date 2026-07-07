@@ -34,15 +34,12 @@
             </div>
             <p class="text-muted mt-3 mb-0" style="font-size: 0.78rem;">
                 <strong>Note:</strong> Some files may be large and take a few minutes.
-                Do not close this window — you can minimise it and continue using the application.
+                Do not close this window you can minimise it and continue using the application.
             </p>
         </div>
     </div>
 
     {{ jszip_js() }}
-    <script>
-        const rootPath = {{ request.script_root | tojson }};
-    </script>
     <script src="{{ url_for('static', filename='scripts/download_progress.js') }}"></script>
 </body>
 
