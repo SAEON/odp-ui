@@ -88,14 +88,14 @@ function populateOrcidInfo(orcidInput) {
             url: `/submissions/orcid/${orcidId}`,
             method: 'GET',
             success: function (data) {
-                if (data.person?.name) {
-                    $(`#${baseId}first_name`).val(data.person.name['given-names']?.value || '').trigger('change');
-                    $(`#${baseId}last_name`).val(data.person.name['family-name']?.value || '').trigger('change');
+                $(`#${baseId}first_name`).val(data.givenNames || '').trigger('change');
+                $(`#${baseId}last_name`).val(data.familyName || '').trigger('change');
+
+                const primaryEmployment = data.employments?.[0];
+                if (primaryEmployment?.organizationName) {
+                    $(`#${baseId}affiliation_name`).val(primaryEmployment.organizationName).trigger('change');
                 }
-                const employment = data['activities-summary']?.employments?.['employment-summary']?.[0];
-                if (employment) {
-                    $(`#${baseId}affiliation_name`).val(employment.organization.name).trigger('change');
-                }
+
                 orcidInput.addClass('is-valid');
             },
             error: function (xhr) {
