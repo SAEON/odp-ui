@@ -425,6 +425,8 @@
 ) %}
 {% set datacite_metadata = record | select_datacite_metadata %}
 {% set iso19115_metadata = record | select_iso19115_metadata %}
+{% set eml_metadata = record | select_eml_metadata %}
+
 {% set N, E, S, W = record.spatial_north, record.spatial_east, record.spatial_south, record.spatial_west %}
 
 <ul class="nav nav-tabs" role="tablist">
@@ -479,6 +481,12 @@
         {% endif %}
 
         {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
+
+        {% if eml_metadata
+              and eml_metadata.coverage
+              and eml_metadata.coverage.taxonomicCoverage %}
+            {% set props = props + ['Taxonomic information'] %}
+        {% endif %}
 
         {% set vertical -%}
         {% if iso19115_metadata and iso19115_metadata.extent.verticalElement %}
@@ -641,6 +649,23 @@
 
             {% elif prop == 'Vertical extent' %}
                 {{ vertical }}
+
+            {% elif prop == 'Taxonomic information' %}
+                {% set taxonomic = eml_metadata.coverage.taxonomicCoverage %}
+
+                {% if taxonomic.generalTaxonomicCoverage %}
+                    <p>
+                        <strong>General coverage:</strong>
+                        {{ taxonomic.generalTaxonomicCoverage | join(', ') }}
+                    </p>
+                {% endif %}
+
+                {% for classification in taxonomic.taxonomicClassification %}
+                    <p>
+                        <strong>{{ classification.taxonRankName }}:</strong>
+                        {{ classification.taxonRankValue }}
+                    </p>
+                {% endfor %}
 
             {% elif prop == 'Publisher' %}
                 {{ datacite_metadata.publisher }} ({{ datacite_metadata.publicationYear }})
