@@ -616,7 +616,26 @@
                 {{ abstract }}
 
             {% elif prop == 'Methods' %}
-                {{ methods }}
+
+                {% if eml_metadata and eml_metadata.methods is defined %}
+
+                    <p>
+                        {{ eml_metadata.methods.methodStep }}
+                    </p>
+
+                    {% if eml_metadata.methods.qualityControl is defined
+              and eml_metadata.methods.qualityControl %}
+                        <p>
+                            <strong>Quality Control:</strong><br/>
+                            {{ eml_metadata.methods.qualityControl }}
+                        </p>
+                    {% endif %}
+
+                {% else %}
+
+                    {{ methods }}
+
+                {% endif %}
 
             {% elif prop == 'Temporal extent' %}
                 {% if record.temporal_start %}
