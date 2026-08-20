@@ -59,6 +59,10 @@ def select_iso19115_metadata(record: dict) -> dict | None:
     """Select the ISO19115 metadata dict, if present."""
     return _select_metadata(record, ODPMetadataSchema.SAEON_ISO19115)
 
+@bp.app_template_filter()
+def select_eml_metadata(record: dict) -> dict | None:
+    """Select the EML metadata dict, if present."""
+    return _select_metadata(record, ODPMetadataSchema.SAEON_EML)
 
 @bp.app_template_filter()
 def select_schemaorg_metadata(record: dict) -> dict | None:
