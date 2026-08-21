@@ -281,7 +281,7 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-function downloadSelectedRecords(event, _buttonEl, recordId) {
+function downloadSelectedRecords(event, _buttonEl, recordId, downloadUrl = null) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -296,6 +296,8 @@ function downloadSelectedRecords(event, _buttonEl, recordId) {
             downloadAuditForm.reset();
 
             downloadAuditForm.querySelectorAll('input[name="record_ids"]').forEach(el => el.remove());
+            downloadAuditForm.querySelectorAll('input[name="download_url"]').forEach(el => el.remove());
+
             selectedIds.forEach(id => {
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -303,9 +305,18 @@ function downloadSelectedRecords(event, _buttonEl, recordId) {
                 input.value = id;
                 downloadAuditForm.appendChild(input);
             });
+
+            if (downloadUrl) {
+                const urlInput = document.createElement('input');
+                urlInput.type = 'hidden';
+                urlInput.name = 'download_url';
+                urlInput.value = downloadUrl;
+                urlInput.id = 'dynamic-download-url';
+                downloadAuditForm.appendChild(urlInput);
+            }
         }
 
-        if (submitDownloadBtn) submitDownloadBtn.disabled = true;
+        if (submitDownloadBtn) submitDownloadBtn.disabled = false;
         const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
         if (loader) loader.style.display = 'none';
 
@@ -425,25 +436,37 @@ function initDownloadModal() {
 
             saveDownloadCache(name, email, organisation);
 
-            const recordIds = [...downloadAuditForm.querySelectorAll('input[name="record_ids"]')]
-                .map(i => i.value);
 
-            localStorage.setItem('odp-download-request', JSON.stringify({
-                recordIds,
-                userData: { name, email, organisation },
-            }));
+            const urlInput = document.getElementById('dynamic-download-url');
 
-            const popup = window.open(
-                rootPath + '/catalog/download-progress',
-                'odp-download',
-                'width=520,height=200,resizable=yes,scrollbars=no'
-            );
+            if (urlInput && urlInput.value) {
+                // Open the Somisana link in a new tab
+                window.open(urlInput.value, '_blank');
 
-            downloadModalInstance.hide();
+                // Hide modal and reset form
+                if (downloadModalInstance) downloadModalInstance.hide();
+            } else {
 
-            if (!popup) {
-                localStorage.removeItem('odp-download-request');
-                showNotification('Please allow popups for this site to enable downloads, then try again.', 'warning');
+                const recordIds = [...downloadAuditForm.querySelectorAll('input[name="record_ids"]')]
+                    .map(i => i.value);
+
+                localStorage.setItem('odp-download-request', JSON.stringify({
+                    recordIds,
+                    userData: {name, email, organisation},
+                }));
+
+                const popup = window.open(
+                    rootPath + '/catalog/download-progress',
+                    'odp-download',
+                    'width=520,height=200,resizable=yes,scrollbars=no'
+                );
+
+                downloadModalInstance.hide();
+
+                if (!popup) {
+                    localStorage.removeItem('odp-download-request');
+                    showNotification('Please allow popups for this site to enable downloads, then try again.', 'warning');
+                }
             }
         });
     }
