@@ -281,7 +281,7 @@ function handleShareClick(buttonElement) {
     if (cb?.type === 'checkbox') cb.checked = true;
 }
 
-function downloadSelectedRecords(event, _buttonEl, recordId, downloadUrl = null) {
+function downloadSelectedRecords(event, _buttonEl, recordId) {
     event.preventDefault();
     event.stopPropagation();
 
@@ -296,8 +296,6 @@ function downloadSelectedRecords(event, _buttonEl, recordId, downloadUrl = null)
             downloadAuditForm.reset();
 
             downloadAuditForm.querySelectorAll('input[name="record_ids"]').forEach(el => el.remove());
-            downloadAuditForm.querySelectorAll('input[name="download_url"]').forEach(el => el.remove());
-
             selectedIds.forEach(id => {
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -305,18 +303,9 @@ function downloadSelectedRecords(event, _buttonEl, recordId, downloadUrl = null)
                 input.value = id;
                 downloadAuditForm.appendChild(input);
             });
-
-            if (downloadUrl) {
-                const urlInput = document.createElement('input');
-                urlInput.type = 'hidden';
-                urlInput.name = 'download_url';
-                urlInput.value = downloadUrl;
-                urlInput.id = 'dynamic-download-url';
-                downloadAuditForm.appendChild(urlInput);
-            }
         }
 
-        if (submitDownloadBtn) submitDownloadBtn.disabled = false;
+        if (submitDownloadBtn) submitDownloadBtn.disabled = true;
         const loader = submitDownloadBtn?.querySelector('.submit-download-loader');
         if (loader) loader.style.display = 'none';
 
@@ -397,76 +386,64 @@ function initDownloadModal() {
         downloadAuditForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
-            const urlInput = document.getElementById('dynamic-download-url');
+            const nameField = document.getElementById('download-name');
+            const emailField = document.getElementById('download-email');
+            const orgField = document.getElementById('organisation');
 
-            if (urlInput && urlInput.value) {
-                // Open the Somisana link in a new tab
-                window.open(urlInput.value, '_blank');
+            const name = nameField.value.trim();
+            const email = emailField.value.trim();
+            const organisation = orgField.value.trim();
 
-                // Hide modal and reset form
-                if (downloadModalInstance) downloadModalInstance.hide();
-            } else {
+            // Reset previous validation state
+            [nameField, emailField, orgField].forEach(f => f.classList.remove('is-invalid'));
+            document.getElementById('error-name').textContent = '';
+            document.getElementById('error-email').textContent = '';
+            document.getElementById('error-organisation').textContent = '';
 
+            let valid = true;
+            if (!name) {
+                nameField.classList.add('is-invalid');
+                document.getElementById('error-name').textContent = 'Name is required.';
+                valid = false;
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email) {
+                emailField.classList.add('is-invalid');
+                document.getElementById('error-email').textContent = 'Email is required.';
+                valid = false;
+            } else if (!emailRegex.test(email)) {
+                emailField.classList.add('is-invalid');
+                document.getElementById('error-email').textContent = 'Please enter a valid email address.';
+                valid = false;
+            }
+            if (!organisation) {
+                orgField.classList.add('is-invalid');
+                document.getElementById('error-organisation').textContent = 'Organisation is required.';
+                valid = false;
+            }
+            if (!valid) return;
 
-                const nameField = document.getElementById('download-name');
-                const emailField = document.getElementById('download-email');
-                const orgField = document.getElementById('organisation');
+            saveDownloadCache(name, email, organisation);
 
-                const name = nameField.value.trim();
-                const email = emailField.value.trim();
-                const organisation = orgField.value.trim();
+            const recordIds = [...downloadAuditForm.querySelectorAll('input[name="record_ids"]')]
+                .map(i => i.value);
 
-                // Reset previous validation state
-                [nameField, emailField, orgField].forEach(f => f.classList.remove('is-invalid'));
-                document.getElementById('error-name').textContent = '';
-                document.getElementById('error-email').textContent = '';
-                document.getElementById('error-organisation').textContent = '';
+            localStorage.setItem('odp-download-request', JSON.stringify({
+                recordIds,
+                userData: { name, email, organisation },
+            }));
 
-                let valid = true;
-                if (!name) {
-                    nameField.classList.add('is-invalid');
-                    document.getElementById('error-name').textContent = 'Name is required.';
-                    valid = false;
-                }
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!email) {
-                    emailField.classList.add('is-invalid');
-                    document.getElementById('error-email').textContent = 'Email is required.';
-                    valid = false;
-                } else if (!emailRegex.test(email)) {
-                    emailField.classList.add('is-invalid');
-                    document.getElementById('error-email').textContent = 'Please enter a valid email address.';
-                    valid = false;
-                }
-                if (!organisation) {
-                    orgField.classList.add('is-invalid');
-                    document.getElementById('error-organisation').textContent = 'Organisation is required.';
-                    valid = false;
-                }
-                if (!valid) return;
+            const popup = window.open(
+                rootPath + '/catalog/download-progress',
+                'odp-download',
+                'width=520,height=200,resizable=yes,scrollbars=no'
+            );
 
-                saveDownloadCache(name, email, organisation);
+            downloadModalInstance.hide();
 
-                const recordIds = [...downloadAuditForm.querySelectorAll('input[name="record_ids"]')]
-                    .map(i => i.value);
-
-                localStorage.setItem('odp-download-request', JSON.stringify({
-                    recordIds,
-                    userData: {name, email, organisation},
-                }));
-
-                const popup = window.open(
-                    rootPath + '/catalog/download-progress',
-                    'odp-download',
-                    'width=520,height=200,resizable=yes,scrollbars=no'
-                );
-
-                downloadModalInstance.hide();
-
-                if (!popup) {
-                    localStorage.removeItem('odp-download-request');
-                    showNotification('Please allow popups for this site to enable downloads, then try again.', 'warning');
-                }
+            if (!popup) {
+                localStorage.removeItem('odp-download-request');
+                showNotification('Please allow popups for this site to enable downloads, then try again.', 'warning');
             }
         });
     }
