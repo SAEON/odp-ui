@@ -301,10 +301,11 @@
                               and immutable_resource.resourceDownload.downloadURL.startswith('https://repository.ocean.gov.za') %}
 
                                     {% set download_url = immutable_resource.resourceDownload.downloadURL %}
+                                    {% set safe_url = download_url if 'somisana' in download_url else '' %}
 
                                     <button class="btn btn-link p-0 no-outline"
                                             type="button"
-                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}')">
+                                            onclick="downloadSelectedRecords(event, this, '{{ record.id }}','{{ safe_url }}')">
                                         <img src="{{ url_for('static', filename='images/download-icon.png') }}"
                                              height="15px">
                                         <span class="download-loader" style="display:none;">
@@ -930,7 +931,9 @@
     record_id,
     doi=None
 ) %}
-    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}', '{{ download_url }}')"
+    {% set safe_url = download_url if download_url and 'somisana' in download_url else '' %}
+    <button type="button" class="btn btn-primary"
+            onclick="downloadSelectedRecords(event, this, '{{ record_id }}', '{{ safe_url }}')"
             data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
         <span class="download-text">Download</span>
         <span class="download-loader spinner-border spinner-border-sm ms-2" style="display:none;"></span>
