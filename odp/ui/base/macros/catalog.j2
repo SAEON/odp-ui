@@ -930,7 +930,7 @@
     record_id,
     doi=None
 ) %}
-    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}')"
+    <button type="button" class="btn btn-primary" onclick="downloadSelectedRecords(event, this, '{{ record_id }}', '{{ download_url }}')"
             data-records='[{"id":"{{ record_id }}","doi":"{{ doi or '' }}"}]'>
         <span class="download-text">Download</span>
         <span class="download-loader spinner-border spinner-border-sm ms-2" style="display:none;"></span>
