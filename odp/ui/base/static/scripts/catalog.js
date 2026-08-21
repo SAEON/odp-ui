@@ -397,6 +397,46 @@ function initDownloadModal() {
         downloadAuditForm.addEventListener('submit', function (e) {
             e.preventDefault();
 
+            const nameField = document.getElementById('download-name');
+            const emailField = document.getElementById('download-email');
+            const orgField = document.getElementById('organisation');
+
+            const name = nameField.value.trim();
+            const email = emailField.value.trim();
+            const organisation = orgField.value.trim();
+
+            // Reset previous validation state
+            [nameField, emailField, orgField].forEach(f => f.classList.remove('is-invalid'));
+            document.getElementById('error-name').textContent = '';
+            document.getElementById('error-email').textContent = '';
+            document.getElementById('error-organisation').textContent = '';
+
+            let valid = true;
+            if (!name) {
+                nameField.classList.add('is-invalid');
+                document.getElementById('error-name').textContent = 'Name is required.';
+                valid = false;
+            }
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email) {
+                emailField.classList.add('is-invalid');
+                document.getElementById('error-email').textContent = 'Email is required.';
+                valid = false;
+            } else if (!emailRegex.test(email)) {
+                emailField.classList.add('is-invalid');
+                document.getElementById('error-email').textContent = 'Please enter a valid email address.';
+                valid = false;
+            }
+            if (!organisation) {
+                orgField.classList.add('is-invalid');
+                document.getElementById('error-organisation').textContent = 'Organisation is required.';
+                valid = false;
+            }
+            if (!valid) return;
+
+            saveDownloadCache(name, email, organisation);
+
+
             const urlInput = document.getElementById('dynamic-download-url');
 
             if (urlInput && urlInput.value) {
@@ -406,46 +446,6 @@ function initDownloadModal() {
                 // Hide modal and reset form
                 if (downloadModalInstance) downloadModalInstance.hide();
             } else {
-
-
-                const nameField = document.getElementById('download-name');
-                const emailField = document.getElementById('download-email');
-                const orgField = document.getElementById('organisation');
-
-                const name = nameField.value.trim();
-                const email = emailField.value.trim();
-                const organisation = orgField.value.trim();
-
-                // Reset previous validation state
-                [nameField, emailField, orgField].forEach(f => f.classList.remove('is-invalid'));
-                document.getElementById('error-name').textContent = '';
-                document.getElementById('error-email').textContent = '';
-                document.getElementById('error-organisation').textContent = '';
-
-                let valid = true;
-                if (!name) {
-                    nameField.classList.add('is-invalid');
-                    document.getElementById('error-name').textContent = 'Name is required.';
-                    valid = false;
-                }
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!email) {
-                    emailField.classList.add('is-invalid');
-                    document.getElementById('error-email').textContent = 'Email is required.';
-                    valid = false;
-                } else if (!emailRegex.test(email)) {
-                    emailField.classList.add('is-invalid');
-                    document.getElementById('error-email').textContent = 'Please enter a valid email address.';
-                    valid = false;
-                }
-                if (!organisation) {
-                    orgField.classList.add('is-invalid');
-                    document.getElementById('error-organisation').textContent = 'Organisation is required.';
-                    valid = false;
-                }
-                if (!valid) return;
-
-                saveDownloadCache(name, email, organisation);
 
                 const recordIds = [...downloadAuditForm.querySelectorAll('input[name="record_ids"]')]
                     .map(i => i.value);
