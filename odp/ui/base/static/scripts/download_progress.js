@@ -53,8 +53,6 @@ async function runDownload() {
             );
 
             if (rec.data_file_url) {
-                folder.file('download_link.txt', rec.data_file_url);
-
                 let fileRes = null;
                 try { fileRes = await fetch(rec.data_file_url + '/download'); } catch (_) { }
                 if (!fileRes || !fileRes.ok) {
