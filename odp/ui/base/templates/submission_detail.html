@@ -42,13 +42,15 @@
                     >
                         Edit Metadata
                     </a>
-                    <a href="{{ url_for('.submit', id=submission.id) }}"
-                       class="btn btn-outline-success btn-action {{ 'disabled' if not buttons_enabled }}"
-                       data-toggle="tooltip" data-placement="bottom"
-                       title="Submit the data to SAEON for curation and publication. Your submission cannot be edited after this"
-                    >
-                        Submit
-                    </a>
+                    <form action="{{ url_for('.submit', id=submission.id) }}" method="post" class="d-inline">
+                        <button type="submit"
+                                class="btn btn-outline-success btn-action"
+                                {{ 'disabled' if not buttons_enabled }}
+                                data-toggle="tooltip" data-placement="bottom"
+                                title="Submit the data to SAEON for curation and publication. Your submission cannot be edited after this">
+                            Submit
+                        </button>
+                    </form>
                     <form action="{{ url_for('.delete', id=submission.id) }}" method="post">
                         <button type="submit"
                                 class="btn btn-outline-danger btn-action"

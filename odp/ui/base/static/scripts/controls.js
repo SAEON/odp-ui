@@ -1,3 +1,20 @@
+$(function () {
+    $("#new-doi").on("click", function () {
+        if (!$("#collection_id").val()) {
+            alert("Please select a collection.");
+            return;
+        }
+
+        $.getJSON(rootPath + "/collections/" + $("#collection_id").val() + "/doi/new", function (result) {
+            if (result.doi) {
+                $("#doi").val(result.doi);
+            } else if (result.detail) {
+                alert(result.detail);
+            }
+        });
+    });
+});
+
 function initCheckAll() {
     $('#check-all').prop('indeterminate', false);
 

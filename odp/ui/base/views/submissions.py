@@ -111,22 +111,34 @@ def upload(id):
         if form.dataset.data:
             api_route = f'/submission/{id}/upload'
 
-            api.put_files(
-                api_route,
-                files={'file': (form.dataset.data.filename, form.dataset.data.stream)}
-            )
+            try:
+
+                api.put_files(
+                    api_route,
+                    files={'file': (form.dataset.data.filename, form.dataset.data.stream)}
+                )
+
+            except ODPAPIError as e:
+                if response := api.handle_error(e):
+                    return response
 
             flash(f'Dataset uploaded successfully.', category='success')
 
         elif form.dataset_link.data:
             api_route = f'/submission/{id}/dataset_url'
 
-            api.post(
-                api_route,
-                data={},
-                dataset_url=form.dataset_link.data,
-                user_id=current_user.id,
-            )
+            try:
+
+                api.post(
+                    api_route,
+                    data={},
+                    dataset_url=form.dataset_link.data,
+                    user_id=current_user.id,
+                )
+
+            except ODPAPIError as e:
+                if response := api.handle_error(e):
+                    return response
 
             flash(f'Dataset URL added successfully.', category='success')
 
@@ -163,13 +175,19 @@ def edit(id):
     if request.method == 'POST' and form.validate():
         cleaned_data = utils.clean_submission_data(form.data)
 
-        api.put(
-            f'/submission/{id}',
-            data=dict(cleaned_data),
-            user_id=current_user.id
-        )
-        flash(f'Record {id} has been updated.', category='success')
-        return redirect(url_for('.detail', id=id))
+        try:
+
+            api.put(
+                f'/submission/{id}',
+                data=dict(cleaned_data),
+                user_id=current_user.id
+            )
+            flash(f'Record {id} has been updated.', category='success')
+            return redirect(url_for('.detail', id=id))
+
+        except ODPAPIError as e:
+            if response := api.handle_error(e):
+                return response
 
     return render_template(
         'submission_edit.html',
@@ -179,7 +197,7 @@ def edit(id):
     )
 
 
-@bp.route('/<id>/submit', methods=['GET', 'POST'])
+@bp.route('/<id>/submit', methods=['POST'])
 @api.view(ODPScope.SUBMISSION_WRITE)
 def submit(id):
     if not current_user.is_authenticated:
@@ -205,7 +223,13 @@ def delete(id):
         flash('Please log in to access that page.', 'warning')
         return redirect(url_for('.index'))
 
-    api.delete(f'/submission/{id}', user_id=current_user.id)
+    try:
+
+        api.delete(f'/submission/{id}', user_id=current_user.id)
+
+    except ODPAPIError as e:
+        if response := api.handle_error(e):
+            return response
 
     flash(f'Record {id} has been deleted.', category='success')
     return redirect(url_for('.index'))
