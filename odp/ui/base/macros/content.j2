@@ -2,7 +2,7 @@
 
 
 {% macro render_table(result) %}
-    {# Render a paginated list result in a table.
+{# Render a paginated list result in a table.
         Column titles can be passed in via columns=[...] or varargs.
         To disable automatic id column rendering, pass hide_id=true.
         Additional query params to append to paging URLs can be passed in via query='&...' or kwargs.
@@ -13,46 +13,46 @@
                 <td>{{ catalog.record_count }}</td>
             {% endcall %}
     #}
-    {% set columns = kwargs.pop('columns', none) or varargs %}
-    {% set hide_id = kwargs.pop('hide_id', false) %}
-    {% set query = kwargs.pop('query', '') %}
+{% set columns = kwargs.pop('columns', none) or varargs %}
+{% set hide_id = kwargs.pop('hide_id', false) %}
+{% set query = kwargs.pop('query', '') %}
 
-    {% set pagination %}
-        <div class="mt-4 mx-2">
-            {{ pagination(result.page, result.pages, result.total, query=query, **kwargs) }}
-        </div>
-    {% endset %}
+{% set pagination %}
+<div class="mt-4 mx-2">
+    {{ pagination(result.page, result.pages, result.total, query=query, **kwargs) }}
+</div>
+{% endset %}
 
-    {% if result.pages > 1 %}
-        {{ pagination }}
-    {% endif %}
-
-    <table class="table table-hover mt-2">
-        <thead>
-            <tr>
-                {% if not hide_id %}
-                    <th scope="col">Id</th>
-                {% endif %}
-                {% for col in columns %}
-                    <th scope="col">{{ col }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for obj in result['items'] %}
-                <tr>
-                    {% if not hide_id %}
-                        <th scope="row">{{ obj_link('', obj.id) }}</th>
-                    {% endif %}
-                    {% if caller %}
-                        {{ caller(obj) }}
-                    {% endif %}
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
+{% if result.pages > 1 %}
     {{ pagination }}
+{% endif %}
+
+<table class="table table-hover mt-2">
+    <thead>
+    <tr>
+        {% if not hide_id %}
+            <th scope="col">Id</th>
+        {% endif %}
+        {% for col in columns %}
+            <th scope="col">{{ col }}</th>
+        {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for obj in result['items'] %}
+        <tr>
+            {% if not hide_id %}
+                <th scope="row">{{ obj_link('', obj.id) }}</th>
+            {% endif %}
+            {% if caller %}
+                {{ caller(obj) }}
+            {% endif %}
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{{ pagination }}
 
 {% endmacro %}
 
@@ -77,7 +77,8 @@
         </td>
     {% endcall %}
     <div class="btn-toolbar justify-content-between mt-4">
-        <a href="{{ url_for(tag_view, id=obj.id) }}" class="btn btn-outline-success btn-action {{ 'disabled' if not enable_buttons }}">
+        <a href="{{ url_for(tag_view, id=obj.id) }}"
+           class="btn btn-outline-success btn-action {{ 'disabled' if not enable_buttons }}">
             Tag
         </a>
     </div>
@@ -107,13 +108,15 @@
     {% if button.prompt %}
         <form action="{{ url_for(button.endpoint, id=button.object_id) }}" method="post">
             <button type="submit" class="btn btn-{{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action"
-                    onclick="return confirm('{{ button.prompt % button.prompt_args }}')" {{ 'disabled' if not button.enabled }}>
+                    onclick="return confirm('{{ button.prompt % button.prompt_args }}')"
+                    {{ 'disabled' if not button.enabled }}>
                 {{ button.label }}
             </button>
         </form>
     {% else %}
         <a href="{{ url_for(button.endpoint, id=button.object_id) }}"
-           class="btn btn-{{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action {{ 'disabled' if not button.enabled }}">
+           class="btn btn-{{ 'outline-' if button.outline }}{{ button.theme.value }} btn-action
+            {{ 'disabled' if not button.enabled }}">
             {{ button.label }}
         </a>
     {% endif %}
@@ -165,49 +168,66 @@
     #}
     <table class="table">
         <tbody>
-            {% if not kwargs.get('hide_id') %}
-                <tr>
-                    <th scope="row">Id</th>
-                    <td>{{ obj.id }}</td>
-                </tr>
-            {% endif %}
-            {% for prop in kwargs.get('properties') or varargs %}
-                <tr>
-                    <th scope="row">{{ prop }}</th>
-                    <td>{{ caller(prop) }}</td>
-                </tr>
-            {% endfor %}
+        {% if not kwargs.get('hide_id') %}
+            <tr>
+                <th scope="row">Id</th>
+                <td>{{ obj.id }}</td>
+            </tr>
+        {% endif %}
+        {% for prop in kwargs.get('properties') or varargs %}
+            <tr>
+                <th scope="row">{{ prop }}</th>
+                <td>{{ caller(prop) }}</td>
+            </tr>
+        {% endfor %}
         </tbody>
     </table>
 {% endmacro %}
 
 
-{% macro render_form(form, obj, col2_fields) %}
+{% macro render_form(form, obj, col2_fields, full_width=false) %}
     {# Render a form and populate fields from obj, if provided.
         To override the default submit target, pass submit_target=url.
         To override the default cancel target, pass cancel_target=url.
     #}
     {% set submit_target = kwargs.get('submit_target') or
-        (url_for('.edit', id=obj.id) if obj else url_for('.create'))
-    %}
+        (url_for('.edit', id=obj.id) if obj else url_for('.create')) %}
     {% set cancel_target = kwargs.get('cancel_target') or
-        (url_for('.detail', id=obj.id) if obj else url_for('.index'))
-    %}
-    <form action="{{ submit_target }}" method="post">
+        (url_for('.detail', id=obj.id) if obj else url_for('.index')) %}
+    <form action="{{ submit_target }}" method="post"
+            {% if kwargs.get('file_upload') %}
+          enctype="multipart/form-data"
+            {% endif %}
+    >
         {{ form.csrf_token }}
         <div class="row">
-            <div class="col-5">
+            {% set form_col_class = ("col-12" if full_width else "col-6 m-auto")  if not col2_fields else "col-5" %}
+            <div class="{{ form_col_class }}">
                 {% for field in form if field.id != 'csrf_token' and field.id not in col2_fields %}
-                    {{ render_field(field, obj) }}
+                    {% if field.type == 'FieldList' %}
+                        {{ render_field_list(field) }}
+                    {% elif field.type == 'FormField' %}
+                        {{ render_form_field(field) }}
+                    {% else %}
+                        {{ render_field(field, obj) }}
+                    {% endif %}
                 {% endfor %}
             </div>
-            <div class="col-7">
-                {% for field in form if field.id in col2_fields %}
-                    {{ render_field(field, obj) }}
-                {% endfor %}
-            </div>
+            {% if col2_fields %}
+                <div class="col-7">
+                    {% for field in form if field.id in col2_fields %}
+                        {% if field.type == 'FieldList' %}
+                            {{ render_field_list(field) }}
+                        {% elif field.type == 'FormField' %}
+                            {{ render_form_field(field) }}
+                        {% else %}
+                            {{ render_field(field, obj) }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
-        <div class="mt-4">
+        <div class="mt-4 {{ ("col-12" if full_width else "col-6 mx-auto") if not col2_fields }}">
             <button type="submit" class="btn btn-outline-primary btn-action">
                 Save
             </button>
@@ -218,37 +238,136 @@
     </form>
 {% endmacro %}
 
-
-{% macro render_field(field, obj) %}
+{% macro render_form_field(form_field) %}
     <div class="mt-4">
-        {{ field.label(class='form-label') }}
-        {% if obj and field.id == 'id' %}
-            {{ field(class='form-control', readonly='') }}
-        {% elif field.type == 'BooleanField' %}
-            <div class="form-check">
-                {{ field(class='form-check-input') }}
+        {{ form_field.label(class='form-label') }}
+        {{ render_subform(form_field) }}
+        {% if form_field.description %}
+            <div class="form-text">{{ form_field.description }}</div>
+        {% endif %}
+    </div>
+{% endmacro %}
+
+{% macro render_field_list(field_list) %}
+    <div class="mt-4">
+        {{ field_list.label(class='form-label') }}
+        <div class="row">
+            <div class="col-11 field_list_wrapper" id="field_list_wrapper_{{ field_list.name }}">
+                {% for entry in field_list.entries %}
+                    {% set adjusted_loop_index =  loop.index - 1 %}
+                    <div class="row field_list_row" id="field_list_row_{{ field_list.name }}-{{ adjusted_loop_index }}">
+                        <div class="col-11">
+                            {% if entry.type == 'FormField' %}
+                                {{ render_subform(entry) }}
+                            {% else %}
+                                {{ render_field_input(entry) }}
+                            {% endif %}
+                        </div>
+                        <div class="col-1 d-flex align-items-end">
+                            <button onclick="removeFieldListEntry(this, '{{ field_list.name }}')" type="button"
+                                    class="mx-1 btn btn-danger btn-remove-field-list-entry" style="width: 30px">-
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
-        {% else %}
-            {% set classes = ['form-control'] %}
-            {% if field.type == 'JSONTextField' %}
-                {% set classes = classes + ['font-monospace'] %}
-            {% elif field.type in ('MultiCheckboxField', 'RadioField') %}
-                {% set classes = classes + ['list-unstyled'] %}
-            {% endif %}
-            {% if field.errors %}
-                {% set classes = classes + ['is-invalid'] %}
-            {% endif %}
-            {{ field(class=classes|join(' '), spellcheck='false') }}
+            <div class="col-1 d-flex align-items-end">
+                <button onclick="appendFieldListEntry('{{ field_list.name }}')" type="button"
+                        class="btn btn-info" style="width: 30px">+
+                </button>
+            </div>
+        </div>
+        {% if field_list.description %}
+            <div class="form-text">{{ field_list.description }}</div>
         {% endif %}
-        {% if field.description %}
-            <div class="form-text">{{ field.description }}</div>
-        {% endif %}
-        {% for error in field.errors %}
-            <div class="invalid-feedback">
-                {{ error }}
+    </div>
+{% endmacro %}
+
+{% macro render_field_list_entry(entry) %}
+    {% set classes = ['form-control', 'field-list-entry'] %}
+    {% if entry.errors %}
+        {% set classes = classes + ['is-invalid'] %}
+    {% endif %}
+    {{ entry(class=classes|join(' '), spellcheck='false') }}
+{% endmacro %}
+
+{% macro render_subform(subform) %}
+    <div class="card subform-wrapper p-3">
+        {{ subform.csrf_token }}
+        {% for field in subform if 'csrf_token' not in field.id %}
+
+            {% set label_classes = [] %}
+            {% if field.flags.required %}
+                {% set label_classes = label_classes + ['required'] %}
+            {% endif %}
+
+            <div class="row subform-row">
+                {% if field.type == 'MapField' %}
+                    {{ field.label(class=label_classes|join(' ')) }}
+                    <div id="map"></div>
+                    {{ field.description }}
+                {% else %}
+                    <div class="col-3">
+                        {{ field.label(class=label_classes|join(' ')) }}
+                    </div>
+                    <div class="col-9">
+                        {{ render_field_input(field) }}
+                    </div>
+                {% endif %}
             </div>
         {% endfor %}
     </div>
+{% endmacro %}
+
+{% macro render_field(field, obj) %}
+    {% set label_classes = ['form-label'] %}
+    {% if field.flags.required %}
+        {% set label_classes = label_classes + ['required'] %}
+    {% endif %}
+    {% if field.type == 'MapField' %}
+        {{ field.label }}
+        <div id="map"></div>
+        {{ field.description }}
+    {% else %}
+        <div class="mt-4">
+            {% if not field.type == 'HiddenField' %}
+                {{ field.label(class=label_classes|join(' ')) }}
+            {% endif %}
+            {{ render_field_input(field, obj) }}
+        </div>
+    {% endif %}
+{% endmacro %}
+
+{% macro render_field_input(field, obj) %}
+    {% if obj and field.id == 'id' %}
+        {{ field(class='form-control', readonly='') }}
+    {% elif field.type == 'BooleanField' %}
+        <div class="form-check">
+            {{ field(class='form-check-input') }}
+        </div>
+    {% else %}
+        {% set classes = ['form-control'] %}
+        {% if 'typeahead' in field.name %}
+            {% set classes = classes + ['typeahead'] %}
+        {% endif %}
+        {% if field.type == 'JSONTextField' %}
+            {% set classes = classes + ['font-monospace'] %}
+        {% elif field.type in ('MultiCheckboxField', 'RadioField') %}
+            {% set classes = classes + ['list-unstyled'] %}
+        {% endif %}
+        {% if field.errors %}
+            {% set classes = classes + ['is-invalid'] %}
+        {% endif %}
+        {{ field(class=classes|join(' '), spellcheck='false') }}
+    {% endif %}
+    {% if field.description %}
+        <div class="form-text">{{ field.description }}</div>
+    {% endif %}
+    {% for error in field.errors %}
+        <div class="invalid-feedback">
+            {{ error }}
+        </div>
+    {% endfor %}
 {% endmacro %}
 
 
@@ -280,4 +399,25 @@
             {{ obj_link(view, obj_id) }}{% if not loop.last %}{{ sep }}{% endif %}
         {% endfor %}
     {% endif %}
+{% endmacro %}
+
+
+{% macro render_flat_form(form, obj) %}
+    {% set submit_target = kwargs.get('submit_target') or
+        (url_for('.edit', id=obj.id) if obj else url_for('.create')) %}
+    <form action="{{ submit_target }}" method="get">
+        {{ form.csrf_token }}
+        <div class="d-flex flex-row col-12">
+            <div class="col-10">
+                {% for field in form if field.id != 'csrf_token' %}
+                    {{ render_field(field, obj) }}
+                {% endfor %}
+            </div>
+            <div class="d-flex flex-column-reverse mx-2">
+                <button type="submit" class="btn btn-outline-primary btn-action">
+                    Submit
+                </button>
+            </div>
+        </div>
+    </form>
 {% endmacro %}

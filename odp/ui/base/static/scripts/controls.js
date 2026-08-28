@@ -1,3 +1,20 @@
+$(function () {
+    $("#new-doi").on("click", function () {
+        if (!$("#collection_id").val()) {
+            alert("Please select a collection.");
+            return;
+        }
+
+        $.getJSON(rootPath + "/collections/" + $("#collection_id").val() + "/doi/new", function (result) {
+            if (result.doi) {
+                $("#doi").val(result.doi);
+            } else if (result.detail) {
+                alert(result.detail);
+            }
+        });
+    });
+});
+
 function initCheckAll() {
     $('#check-all').prop('indeterminate', false);
 
@@ -26,3 +43,55 @@ function checkAll() {
 function checkItem() {
     initCheckAll();
 }
+
+function appendFieldListEntry(fieldListName) {
+    const fieldListRowWrapper = document.getElementById(`field_list_wrapper_${fieldListName}`);
+    const originalFieldListRow = document.getElementById(`field_list_row_${fieldListName}-0`);
+    const clonedFieldListRow = originalFieldListRow.cloneNode(true);
+    const entries = clonedFieldListRow.querySelectorAll('.form-control');
+
+    entries.forEach((entry, index) => {
+        entry.classList.remove('is-invalid');
+        entry.value = '';
+    });
+
+    fieldListRowWrapper.appendChild(clonedFieldListRow);
+    reIndexFieldList(fieldListName);
+}
+
+function removeFieldListEntry(buttonElement, fieldListName) {
+    const fieldListRow = buttonElement.closest('.field_list_row');
+    fieldListRow.parentNode.removeChild(fieldListRow);
+    reIndexFieldList(fieldListName);
+}
+
+function reIndexFieldList(fieldListName) {
+    const fieldListWrapper = document.getElementById(`field_list_wrapper_${fieldListName}`);
+    const fieldListSubforms = fieldListWrapper.querySelectorAll('.subform-wrapper');
+
+    if (fieldListSubforms.length > 0) {
+        fieldListSubforms.forEach((subform, index) => {
+            replaceInputNamesWithIndexedName(subform, index);
+        });
+    } else {
+        const fieldListRows = fieldListWrapper.querySelectorAll('.row');
+
+        fieldListRows.forEach((fieldListRow, index) => {
+            replaceInputNamesWithIndexedName(fieldListRow, index);
+            fieldListRow.id = `field_list_row_${fieldListName}-${index}`;
+        })
+    }
+}
+
+function replaceInputNamesWithIndexedName(parentElement, index) {
+    const regex = /\d/;
+    const formControls = parentElement.querySelectorAll('.form-control');
+
+    formControls.forEach((formControl) => {
+        formControl.name = formControl.name.replace(regex, index);
+        formControl.id = formControl.id.replace(regex, index);
+    });
+}
+
+
+

@@ -1,0 +1,48 @@
+.form-label {
+    font-size: 1em !important;
+    font-weight: bold;
+    color: rgb(var(--bs-primary-rgb));
+}
+
+.form-text {
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+
+.select2-container {
+    width: 100% !important;
+}
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding-right: 2.5rem !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3e%3cpolygon points='6,9 18,9 12,15' fill='%23888'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+}
+
+.select2-selection--multiple:before {
+    content: "";
+    position: absolute;
+    right: 7px;
+    top: 42%;
+    border-top: 5px solid #888;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+}
+
+select::-ms-expand,
+.select2::-ms-expand {
+    display: none;
+}
+
+input.is-loading {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 50 50"><path fill="%236c757d" d="M25,5A20,20,0,1,0,45,25,20,20,0,0,0,25,5Zm0,35A15,15,0,1,1,40,25,15,15,0,0,1,25,40Z" opacity="0.3"/><path fill="%230d6efd" d="M25,5A20,20,0,0,1,45,25h-5A15,15,0,0,0,25,10Z"><animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="0.8s" repeatCount="indefinite"/></path></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 20px 20px;
+    padding-right: 35px;
+}
