@@ -85,7 +85,7 @@ function populateOrcidInfo(orcidInput) {
         const baseId = orcidInput.attr('id').replace('orcid', '');
 
         $.ajax({
-            url: `/submissions/orcid/${orcidId}`,
+            url: `${SCRIPT_ROOT}/submissions/orcid/${orcidId}`,
             method: 'GET',
             success: function (data) {
                 $(`#${baseId}first_name`).val(data.givenNames || '').trigger('change');
