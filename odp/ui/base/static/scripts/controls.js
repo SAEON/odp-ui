@@ -5,7 +5,7 @@ $(function () {
             return;
         }
 
-        $.getJSON(rootPath + "/collections/" + $("#collection_id").val() + "/doi/new", function (result) {
+        $.getJSON(SCRIPT_ROOT + "/collections/" + $("#collection_id").val() + "/doi/new", function (result) {
             if (result.doi) {
                 $("#doi").val(result.doi);
             } else if (result.detail) {
