@@ -12,6 +12,7 @@ body {
     background-repeat: no-repeat;
     background-size: cover;
     background-attachment: fixed;
+    color: var(--mims-body-text);
 }
 
 .tab-content, .filter-panel, .accordion-item, .card, .search-control, .sort-control {
