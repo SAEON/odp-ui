@@ -426,6 +426,8 @@
 ) %}
 {% set datacite_metadata = record | select_datacite_metadata %}
 {% set iso19115_metadata = record | select_iso19115_metadata %}
+{% set eml_metadata = record | select_eml_metadata %}
+
 {% set N, E, S, W = record.spatial_north, record.spatial_east, record.spatial_south, record.spatial_west %}
 
 <ul class="nav nav-tabs" role="tablist">
@@ -477,6 +479,12 @@
                              map(attribute='description') | first %}
         {% if methods %}
             {% set props = props + ['Methods'] %}
+        {% endif %}
+
+        {% if eml_metadata
+              and eml_metadata.coverage
+              and eml_metadata.coverage.taxonomicCoverage %}
+            {% set props = props + ['Taxonomic information'] %}
         {% endif %}
 
         {% set props = props + ['Data', 'Temporal extent', 'Geographic extent'] %}
@@ -609,7 +617,164 @@
                 {{ abstract }}
 
             {% elif prop == 'Methods' %}
-                {{ methods }}
+
+                {% if eml_metadata and eml_metadata.methods is defined %}
+
+                    <p>
+                        {{ eml_metadata.methods.methodStep }}
+                    </p>
+
+                    {% if eml_metadata.methods.qualityControl is defined
+              and eml_metadata.methods.qualityControl %}
+                        <p>
+                            <strong>Quality Control:</strong><br/>
+                            {{ eml_metadata.methods.qualityControl }}
+                        </p>
+                    {% endif %}
+
+                {% else %}
+
+                    {{ methods }}
+
+                {% endif %}
+
+            {% elif prop == 'Taxonomic information' %}
+                {% set taxonomic = eml_metadata.coverage.taxonomicCoverage %}
+
+                {% if taxonomic.generalTaxonomicCoverage is defined
+          and taxonomic.generalTaxonomicCoverage %}
+                    <p>
+                        <strong>General Taxonomic Coverage:</strong><br/>
+                        {{ taxonomic.generalTaxonomicCoverage | join(', ') }}
+                    </p>
+                {% endif %}
+
+                {% if taxonomic.taxonomicClassification is defined
+          and taxonomic.taxonomicClassification %}
+
+                    {% set classifications = taxonomic.taxonomicClassification
+            | selectattr('taxonRankName', 'defined')
+            | list %}
+
+                    {% if classifications %}
+                        <p>
+                            <strong>Taxonomic Classification</strong><br/>
+
+                            {% for classification in classifications %}
+                                <strong>{{ classification.taxonRankName }}:</strong>
+
+                                {% if classification.taxonRankValue is defined
+                          and classification.taxonRankValue %}
+                                    {{ classification.taxonRankValue }}
+                                {% endif %}
+
+                                {% if not loop.last %} | {% endif %}
+                            {% endfor %}
+                        </p>
+                    {% endif %}
+
+                    {% for classification in taxonomic.taxonomicClassification %}
+                        {% if classification.commonName is defined
+                  and classification.commonName %}
+                            <p>
+                                <strong>Common name:</strong>
+                                {{ classification.commonName }}
+                            </p>
+                        {% endif %}
+
+                        {% if classification.taxonId is defined
+                  and classification.taxonId %}
+                            <p>
+                                <strong>Taxon ID:</strong>
+                                {{ classification.taxonId }}
+                            </p>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+
+                {% if taxonomic.taxonomicSystem is defined
+          and taxonomic.taxonomicSystem %}
+                    {% set system = taxonomic.taxonomicSystem %}
+
+                    <p><strong><br/>Taxonomic System</strong></p>
+
+                    {% if system.classificationSystem is defined
+              and system.classificationSystem %}
+                        <p>
+                            <strong>Classification system:</strong>
+                            {{ system.classificationSystem }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.classificationSystemCitation is defined
+              and system.classificationSystemCitation %}
+                        <p>
+                            <strong>Classification System Citation:</strong>
+                            {{ system.classificationSystemCitation }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.classificationSystemModifications is defined
+              and system.classificationSystemModifications %}
+                        <p>
+                            <strong>Classification System Modifications:</strong>
+                            {{ system.classificationSystemModifications }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.identificationReference is defined
+              and system.identificationReference %}
+                        <p>
+                            <strong>Identification reference:</strong>
+                            {{ system.identificationReference }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.identifierName is defined
+              and system.identifierName %}
+                        <p>
+                            <strong>Identifier name:</strong>
+                            {{ system.identifierName }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.taxonomicCompleteness is defined
+              and system.taxonomicCompleteness %}
+                        <p>
+                            <strong>Taxonomic completeness:</strong>
+                            {{ system.taxonomicCompleteness }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.taxonomicProcedures is defined
+              and system.taxonomicProcedures %}
+                        <p>
+                            <strong>Taxonomic procedures:</strong>
+                            {{ system.taxonomicProcedures }}
+                        </p>
+                    {% endif %}
+
+                    {% if system.vouchers is defined and system.vouchers %}
+                        <p><strong><br/>Vouchers</strong></p>
+
+                        {% if system.vouchers.repository is defined
+                  and system.vouchers.repository.originator is defined
+                  and system.vouchers.repository.originator %}
+                            <p>
+                                <strong>Repository:</strong>
+                                {{ system.vouchers.repository.originator }}
+                            </p>
+                        {% endif %}
+
+                        {% if system.vouchers.specimen is defined
+                  and system.vouchers.specimen %}
+                            <p>
+                                <strong>Specimen:</strong>
+                                {{ system.vouchers.specimen }}
+                            </p>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
 
             {% elif prop == 'Temporal extent' %}
                 {% if record.temporal_start %}
