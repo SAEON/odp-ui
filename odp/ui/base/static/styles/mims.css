@@ -72,3 +72,29 @@ body {
 .mims-footer-divider {
     border-color: rgba(255, 255, 255, 0.35);
 }
+
+/* Search bar border ************************************/
+.search-control {
+    border-color: var(--mims-border) !important;
+}
+
+/* Search field text */
+.search-control .form-control {
+    color: var(--mims-body-text);
+}
+
+/* Search field placeholder */
+.search-control .form-control::placeholder {
+    color: #8298AE;
+}
+
+/* Search button/icon */
+.mims-search-button {
+    color: var(--mims-primary);
+}
+
+/* Search button/icon */
+.mims-search-button {
+    color: var(--mims-primary);
+    font-size: 1.25rem;
+}
