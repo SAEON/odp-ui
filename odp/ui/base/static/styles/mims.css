@@ -1,3 +1,12 @@
+:root {
+    --mims-primary: #0067C5;     /* Primary blue: links, buttons and active elements */
+    --mims-heading: #003B70;     /* Dark navy: headings and prominent text */
+    --mims-body-text: #425B76;   /* Blue-grey: normal body text */
+    --mims-section-bg: #EEF6FB;  /* Very light blue: section backgrounds */
+    --mims-border: #C9DFF1;      /* Light blue-grey: borders and dividers */
+    --mims-tag-bg: #D2F0FF;      /* Pale blue: tags, badges and similar elements */
+}
+
 body {
     background-image: var(--home-background-url);
     background-repeat: no-repeat;
@@ -14,4 +23,52 @@ body {
     opacity: 0.9;
     padding: 2em;
     border-radius: 0.375rem;
+}
+
+/* MIMS title and subtitle text beside the logo in the header */
+.mims-logo-color {
+    color: var(--mims-heading);
+}
+
+/* Background colour of the active Catalogue navigation pill */
+.mims-bg-color-mid {
+    background-color: var(--mims-primary) !important;
+}
+
+/* Background colour used by the MIMS footer */
+.mims-bg-color-light {
+    background-color: var(--mims-heading) !important;
+}
+
+/* Colour of MIMS navigation links, e.g. Home */
+.mims-nav-link {
+    color: var(--mims-primary);
+}
+
+/* Navigation link colour when the mouse hovers over it */
+.mims-nav-link:hover {
+    color: var(--mims-heading);
+}
+
+/* MIMS footer styled to align with Webpage 2 *********************************/
+.mims-footer {
+    background:
+        linear-gradient(
+            rgba(0, 59, 112, 0.88),
+            rgba(0, 59, 112, 0.88)
+        ),
+        var(--home-background-url);
+
+    background-size: cover;
+    background-position: center;
+}
+
+/* Footer links */
+.mims-footer a {
+    color: #FFFFFF;
+}
+
+/* Divider above copyright */
+.mims-footer-divider {
+    border-color: rgba(255, 255, 255, 0.35);
 }
