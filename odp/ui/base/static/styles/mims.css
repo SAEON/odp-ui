@@ -111,3 +111,8 @@ body {
 .mims-metadata-title {
     color: var(--bs-dark);
 }
+
+/* Metadata title hover */
+.mims-metadata-title:hover {
+    color: var(--mims-primary);
+}
