@@ -1,6 +1,6 @@
 :root {
     --mims-primary: #0067C5;     /* Primary blue: links, buttons and active elements */
-    --mims-heading: #003B70;     /* Dark navy: headings and prominent text */
+    --mims-heading: #1B2056;     /* Dark navy: headings and prominent text */
     --mims-body-text: #425B76;   /* Blue-grey: normal body text */
     --mims-section-bg: #EEF6FB;  /* Very light blue: section backgrounds */
     --mims-border: #C9DFF1;      /* Light blue-grey: borders and dividers */
@@ -13,10 +13,17 @@ body {
     background-size: cover;
     background-attachment: fixed;
     color: var(--mims-body-text);
+
+    --bs-link-color: var(--mims-primary);
 }
 
 .tab-content, .filter-panel, .accordion-item, .card, .search-control, .sort-control {
     background-color: rgba(var(--bs-white-rgb), 0.9) !important;
+}
+
+.accordion-item {
+    color: var(--bs-accordion-color);
+    background-color: var(--bs-accordion-bg);
 }
 
 .mims-container {
@@ -98,4 +105,9 @@ body {
 .mims-search-button {
     color: var(--mims-primary);
     font-size: 1.25rem;
+}
+
+/* Metadata catalogue record titles */
+.mims-metadata-title {
+    color: var(--bs-dark);
 }
