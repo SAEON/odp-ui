@@ -80,7 +80,7 @@
                     placeholder=placeholder,
                     autofocus=''
                 ) }}
-                <button type="submit" class="btn p-1">
+                <button type="submit" class="btn p-1 mims-search-button">
                     &#128269;
                 </button>
             </div>
@@ -329,7 +329,7 @@
                 <div class="card-body">
                     <h5 class="card-title">
                         <a href="{{ url_for('catalog.view', id=record.doi or record.id) }}"
-                           class="text-decoration-none text-dark fw-bold">
+                           class="text-decoration-none mims-metadata-title fw-bold">
                             {{ metadata.titles[0].title }}
                         </a>
                     </h5>
