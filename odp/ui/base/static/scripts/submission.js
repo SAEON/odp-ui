@@ -81,7 +81,11 @@ function populateOrcidInfo(orcidInput) {
         const fullUrl = `https://orcid.org/${orcidId}`;
 
         orcidInput.val(fullUrl);
+
+        return; // Remove this to enable ORCID fetching
+
         orcidInput.addClass('is-loading');
+
         const baseId = orcidInput.attr('id').replace('orcid', '');
 
         $.ajax({
