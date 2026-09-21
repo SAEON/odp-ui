@@ -64,6 +64,85 @@ function clearError(inputElement) {
     inputElement.siblings('.invalid-feedback').text('');
 }
 
+function fetch_orcid_info(orcidInput, orcidId, baseId) {
+    orcidInput.addClass('is-loading');
+
+    $.ajax({
+        url: `${SCRIPT_ROOT}/submissions/orcid/${orcidId}`,
+        method: 'GET',
+        success: function (data) {
+            $(`#${baseId}first_name`).val(data.givenNames || '').trigger('change');
+            $(`#${baseId}last_name`).val(data.familyName || '').trigger('change');
+
+            const primaryEmployment = data.employments?.[0];
+            if (primaryEmployment?.organizationName) {
+                $(`#${baseId}affiliation_name`).val(primaryEmployment.organizationName).trigger('change');
+            }
+
+            orcidInput.addClass('is-valid');
+        },
+        error: function (xhr) {
+            let errorMsg = 'Failed to fetch ORCID profile. Please fill in details manually.';
+            if (xhr.status === 404) {
+                errorMsg = 'ORCID record not found. Please check the identifier.';
+            }
+            showError(orcidInput, errorMsg);
+        },
+        complete: function () {
+            orcidInput.removeClass('is-loading');
+        }
+    });
+}
+
+function fetch_orcid_pub_info(orcidInput, orcidId, baseId) {
+    orcidInput.addClass('is-loading');
+
+    $.ajax({
+        url: `https://pub.orcid.org/v3.0/${orcidId}`,
+        method: 'GET',
+        headers: {
+            'Accept': 'application/json'
+        },
+        success: function (data) {
+            const givenNames = data.person?.name?.['given-names']?.value || '';
+            const familyName = data.person?.name?.['family-name']?.value || '';
+
+            $(`#${baseId}first_name`).val(givenNames).trigger('change');
+            $(`#${baseId}last_name`).val(familyName).trigger('change');
+
+            const affiliationGroups = data['activities-summary']?.employments?.['affiliation-group'] || [];
+            let organizationName = '';
+
+            for (const group of affiliationGroups) {
+                for (const summaryObj of group.summaries || []) {
+                    const emp = summaryObj['employment-summary'];
+                    if (emp?.organization?.name) {
+                        organizationName = emp.organization.name;
+                        break;
+                    }
+                }
+                if (organizationName) break;
+            }
+
+            if (organizationName) {
+                $(`#${baseId}affiliation_name`).val(organizationName).trigger('change');
+            }
+
+            orcidInput.addClass('is-valid');
+        },
+        error: function (xhr) {
+            let errorMsg = 'Failed to fetch ORCID profile. Please fill in details manually.';
+            if (xhr.status === 404) {
+                errorMsg = 'ORCID record not found. Please check the identifier.';
+            }
+            showError(orcidInput, errorMsg);
+        },
+        complete: function () {
+            orcidInput.removeClass('is-loading');
+        }
+    });
+}
+
 function populateOrcidInfo(orcidInput) {
     let rawValue = orcidInput.val().trim();
 
@@ -81,34 +160,11 @@ function populateOrcidInfo(orcidInput) {
         const fullUrl = `https://orcid.org/${orcidId}`;
 
         orcidInput.val(fullUrl);
-        orcidInput.addClass('is-loading');
+
         const baseId = orcidInput.attr('id').replace('orcid', '');
 
-        $.ajax({
-            url: `${SCRIPT_ROOT}/submissions/orcid/${orcidId}`,
-            method: 'GET',
-            success: function (data) {
-                $(`#${baseId}first_name`).val(data.givenNames || '').trigger('change');
-                $(`#${baseId}last_name`).val(data.familyName || '').trigger('change');
-
-                const primaryEmployment = data.employments?.[0];
-                if (primaryEmployment?.organizationName) {
-                    $(`#${baseId}affiliation_name`).val(primaryEmployment.organizationName).trigger('change');
-                }
-
-                orcidInput.addClass('is-valid');
-            },
-            error: function (xhr) {
-                let errorMsg = 'Failed to fetch ORCID profile. Please fill in details manually.';
-                if (xhr.status === 404) {
-                    errorMsg = 'ORCID record not found. Please check the identifier.';
-                }
-                showError(orcidInput, errorMsg);
-            },
-            complete: function () {
-                orcidInput.removeClass('is-loading');
-            }
-        });
+        // fetch_orcid_info(orcidInput, orcidId, baseId);
+        fetch_orcid_pub_info(orcidInput, orcidId, baseId);
     } else {
         showError(orcidInput, 'Invalid ORCID format. Expected format: 0000-0000-0000-0000');
     }
