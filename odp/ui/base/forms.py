@@ -287,15 +287,13 @@ class SubmissionForm(BaseForm):
         FormField(CreatorForm),
         label='Creators',
         min_entries=1,
-        description='The main researchers or organisations involved in producing the data.'
-        # description='The main researchers or organisations involved in producing the data. Tip: If you fill in your ORCID ID the subsequent fields will auto-populate.'
+        description='The main researchers or organisations involved in producing the data. Tip: If you fill in your ORCID ID the subsequent fields will auto-populate.'
     )
     contributors = FieldList(
         FormField(ContributorForm),
         label='Contributors',
         min_entries=1,
-        description='Other parties who contributed to the data, including a contact person.'
-        # description='Other parties who contributed to the data, including a contact person. Tip: If you fill in your ORCID ID the subsequent fields will auto-populate.'
+        description='Other parties who contributed to the data, including a contact person. Tip: If you fill in your ORCID ID the subsequent fields will auto-populate.'
     )
     geographic_extent = FormField(GeographicExtentForm, label='Geographic Extent')
     location_name = StringField(
