@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% from 'lib.j2' import select2_js, select2_css, flatpickr_css, flatpickr_js %}
+{% from 'web_content.j2' import render_field, field_row, render_geographic_extent, render_license_subform %}
+
+{% block main %}
+    <main class="d-flex flex-grow-1 align-items-center justify-content-evenly">
+        <div class="container-sm mims-container my-3">
+            <div class="col-11 m-auto mb-4">
+                <span style="font-size: 1.4em; color: darkslategrey; font-weight: bold">{% if show_steps %}Step 1 of
+                    2: {% endif %}Metadata Submission</span>
+                <p style="color: darkslategrey">
+                    Fill in the fields below to describe your data, this will enable your data to be Findable,
+                    Accessible, Interoperable and Reusable (FAIR) and is an important step in the archiving and
+                    publication of data. If you are unsure about how to answer any of the fields you can contact us on
+                    curation@saeon.nrf.ac.za.
+                </p>
+            </div>
+            <div class="row">
+                <form action="{{ url_for('.edit', id=submission.id) if submission else url_for('.create') }}"
+                      method="post">
+                    {{ form.csrf_token }}
+                    <div class="row">
+                        <div class="col-11 m-auto">
+                            <div class="mt-5 mb-4 d-flex align-items-center">
+                                <h5 class="mb-0 me-3"
+                                    style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
+                                    Required
+                                    Fields</h5>
+                                <hr class="flex-grow-1 m-0 border-secondary">
+                            </div>
+                            {{ field_row(form.title, submission) }}
+                            {{ field_row(form.abstract, submission, rows=10) }}
+                            {{ field_row(form.date_range, flat=true) }}
+                            {{ field_row(form.keywords, submission) }}
+                            {{ field_row(form.creators, creator=true) }}
+                            {{ field_row(form.contributors, creator=true) }}
+                            <div class="mt-5 mb-4 d-flex align-items-center">
+                                <h5 class="mb-0 me-3"
+                                    style="font-size: 1.4rem; font-weight: 600; color: darkslategrey;">
+                                    Recommended Fields</h5>
+                                <hr class="flex-grow-1 m-0 border-secondary">
+                            </div>
+                            {{ field_row(form.methods, submission, rows=10) }}
+                            {% call field_row(form.geographic_extent, label_style='font-size: 1rem;') %}
+                                {{ render_geographic_extent(form.geographic_extent) }}
+                            {% endcall %}
+                            {{ field_row(form.location_name, submission) }}
+                            {{ field_row(form.instruments, submission) }}
+                            {{ field_row(form.spatial_resolution, submission) }}
+                            {{ field_row(form.reference_system, submission) }}
+                            {{ field_row(form.vertical_extent, flat=true) }}
+                            {{ field_row(form.project) }}
+                            {{ field_row(form.related_identifiers, flat=true) }}
+                            {% call field_row(form.funding_reference) %}
+                                {{ form.funding_reference[0].csrf_token }}
+                                {{ render_field(form.funding_reference[0].funder_name, submission, true) }}
+                            {% endcall %}
+                            {% call field_row(form.license) %}
+                                {{ render_license_subform(form.license, submission) }}
+                            {% endcall %}
+                        </div>
+                    </div>
+                    <div class="mt-4 col-11 mx-auto d-flex justify-content-end">
+                        <a href="{{ url_for('.detail', id=submission.id) if submission else url_for('.index') }}"
+                           class="btn btn-outline-secondary btn-action me-2">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-outline-primary btn-action">
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+{% endblock %}
+
+{% block styles %}
+    {{ super() }}
+    {{ select2_css() }}
+    {{ flatpickr_css() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles/submission.css') }}">
+{% endblock %}
+
+
+{% block scripts %}
+    {{ super() }}
+    {{ select2_js() }}
+    {{ flatpickr_js() }}
+    <script src="{{ url_for('static', filename='scripts/controls.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/submission.js') }}"></script>
+{% endblock %}

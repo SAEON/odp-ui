@@ -76,40 +76,28 @@ def remove_csrf_tokens(data: dict | list) -> dict | list:
         return data
 
 
-def get_orcid_info(orcid_id: str):
-    url = f'{config.ORCID.BASE_URL}oauth/token'
-
-    payload = {
-        'client_id': config.ORCID.CLIENT_ID,
-        'client_secret': config.ORCID.CLIENT_SECRET,
-        'grant_type': 'client_credentials',
-        'scope': '/read-public'
-    }
+def get_orcid_info(orcid_id: str) -> dict:
+    """
+    Fetches basic ORCID profile data using NRF API.
+    """
+    base_url = config.ORCID.BASE_URL.rstrip("/")
+    url = f"{base_url}/v1.0/Integration/Orcid/GetBasicProfile/{orcid_id}"
 
     headers = {
-        'Accept': 'application/json'
+        "X-Api-Key": config.ORCID.API_KEY,
+        "Accept": "application/json"
     }
 
-    response = requests.post(url, data=payload, headers=headers)
-    response.raise_for_status()
-    token_data = response.json()
-    access_token = token_data.get('access_token')
-
-    return get_orcid_record(orcid_id, access_token)
-
-
-def get_orcid_record(orcid_id: str, bearer_token: str):
-    url = f"{config.ORCID.BASE_URL}v2.1/{orcid_id}/record"
-
-    headers = {
-        'Authorization': f'Bearer {bearer_token}',
-        'Accept': 'application/vnd.orcid+json'
-    }
-
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=30)
     response.raise_for_status()
 
-    return response.json()
+    data = response.json()
+
+    if data.get("success"):
+        return data["responseResult"]
+    else:
+        error_msg = data.get("errorMessage") or "ORCID lookup failed"
+        raise Exception(f"API Error: {error_msg}")
 
 
 def clean_submission_data(submission_form_data: dict) -> dict:

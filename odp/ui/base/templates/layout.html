@@ -57,6 +57,10 @@
 {% block scripts %}
     {% from 'lib.j2' import bootstrap_js %}
     {{ bootstrap_js() }}
+
+    <script>
+        const SCRIPT_ROOT = {{ request.script_root | tojson }};
+    </script>
 {% endblock %}
 
 </body>
